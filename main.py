@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from database import SessionLocal, engine
+from database import SessionLocal, engine, get_db
 from models import Base, Gym, Member, Payment
 
 app = FastAPI(title="Gym Management System")
@@ -52,13 +52,6 @@ def migrate_database():
 
 migrate_database()
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def get_or_create_gym(db: Session) -> Gym:
@@ -106,8 +99,10 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     update_member_status(db)
 
     total_members = db.query(Member).count()
-    active_members = db.query(Member).filter(Member.payment_due_date >= today).count()
-    expired_members = db.query(Member).filter(Member.payment_due_date < today).count()
+    active_members = db.query(Member).filter(
+        Member.payment_due_date >= today).count()
+    expired_members = db.query(Member).filter(
+        Member.payment_due_date < today).count()
 
     due_soon_members = (
         db.query(Member)
