@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block topbar_title %}Login{% endblock %}
+
+{% block content %}
+<div style="max-width: 420px; margin: 60px auto;">
+    <div class="card">
+        <h1 style="margin-top: 0;">Secure Login</h1>
+        <p style="color: #6b7280; margin-bottom: 18px;">Enter your gym account credentials to continue.</p>
+
+        <form method="post" action="/login">
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required>
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required>
+
+            <button type="submit" style="width: 100%; margin-top: 8px;">Log in</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
