@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}Gym Management{% endblock %}
+    </title>
+
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background: #f5f7fb;
+            color: #111827;
+        }
+
+
+        /* =========================
+           SIDEBAR
+        ========================= */
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+
+            width: 245px;
+
+            background: #111827;
+            color: white;
+
+            padding: 22px 14px;
+
+            z-index: 100;
+        }
+
+
+        .brand {
+            padding: 4px 12px 28px;
+
+            font-size: 19px;
+            font-weight: 700;
+
+            letter-spacing: -.3px;
+        }
+        .brand span {
+            color: #60a5fa;
+        }
+
+
+        .nav-section {
+            margin: 20px 12px 8px;
+
+            color: #6b7280;
+
+            font-size: 10px;
+            font-weight: 700;
+
+            text-transform: uppercase;
+            letter-spacing: .8px;
+        }
+
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 11px 12px;
+
+            margin-bottom: 4px;
+
+            border-radius: 8px;
+
+            color: #d1d5db;
+
+            text-decoration: none;
+
+            font-size: 14px;
+            font-weight: 500;
+
+            transition: .15s;
+        }
+
+
+        .sidebar a:hover {
+            background: #1f2937;
+            color: white;
+        }
+
+
+        .sidebar a.active {
+            background: #2563eb;
+            color: white;
+        }
+
+
+        .nav-icon {
+            width: 20px;
+
+            text-align: center;
+
+            font-size: 15px;
+        }
+
+
+        /* =========================
+           MAIN AREA
+        ========================= */
+
+        .main-area {
+            margin-left: 245px;
+
+            min-height: 100vh;
+        }
+
+
+        /* =========================
+           TOP BAR
+        ========================= */
+
+        .topbar {
+            height: 70px;
+
+            background: white;
+
+            border-bottom: 1px solid #e5e7eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 30px;
+        }
+
+
+        .topbar-title {
+            font-size: 17px;
+            font-weight: 700;
+
+            color: #111827;
+        }
+
+
+        .gym-name {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+
+        /* =========================
+           CONTENT
+        ========================= */
+
+        .container {
+            max-width: 1250px;
+
+            margin: 0 auto;
+
+            padding: 30px;
+        }
+
+
+        h1 {
+            color: #111827;
+        }
+
+
+        h2 {
+            color: #111827;
+        }
+
+
+        /* =========================
+           CARDS
+        ========================= */
+
+        .card {
+            background: white;
+
+            border: 1px solid #e5e7eb;
+
+            border-radius: 12px;
+
+            padding: 22px;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, .03);
+        }
+
+
+        /* =========================
+           GRID
+        ========================= */
+
+        .grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(auto-fit, minmax(190px, 1fr));
+
+            gap: 16px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .stat {
+            margin-top: 8px;
+
+            font-size: 27px;
+
+            font-weight: 700;
+
+            letter-spacing: -.5px;
+
+            color: #111827;
+        }
+
+        /* =========================
+           TABLES
+        ========================= */
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+        }
+
+
+        th {
+            background: #f9fafb;
+
+            color: #6b7280;
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: .4px;
+        }
+
+
+        th,
+        td {
+            padding: 13px 12px;
+
+            border-bottom: 1px solid #eef0f3;
+
+            text-align: left;
+        }
+
+
+        td {
+            font-size: 13px;
+            color: #374151;
+        }
+
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        /* =========================
+           FORMS
+        ========================= */
+
+        label {
+            display: block;
+
+            margin-bottom: 6px;
+
+            color: #374151;
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        input,
+        select {
+            width: 100%;
+
+            padding: 11px 12px;
+
+            margin-top: 0;
+
+            margin-bottom: 16px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            background: white;
+
+            color: #111827;
+
+            font-family: inherit;
+
+            font-size: 14px;
+
+            outline: none;
+
+            transition: .15s;
+        }
+
+
+        input:focus,
+        select:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px rgba(37, 99, 235, .10);
+        }
+
+
+        /* =========================
+           BUTTONS
+        ========================= */
+
+        button,
+        .button {
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border: 0;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 10px 15px;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            cursor: pointer;
+
+            font-family: inherit;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            transition: .15s;
+        }
+
+
+        button:hover,
+        .button:hover {
+            background: #1d4ed8;
+        }
+
+
+        .danger {
+            background: #dc2626 !important;
+        }
+
+
+        .danger:hover {
+            background: #b91c1c !important;
+        }
+
+
+        /* =========================
+           STATUS
+        ========================= */
+
+        .success {
+            color: #047857;
+
+            font-weight: 700;
+        }
+
+
+        .expired {
+            color: #b91c1c;
+
+            font-weight: 700;
+        }
+
+
+        .muted {
+            color: #6b7280;
+        }
+
+
+        .actions {
+            display: flex;
+
+            gap: 8px;
+
+            flex-wrap: wrap;
+        }
+
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 800px) {
+
+            .sidebar {
+                width: 68px;
+
+                padding: 18px 8px;
+            }
+
+
+            .brand {
+                text-align: center;
+
+                padding: 4px 0 25px;
+
+                font-size: 0;
+            }
+
+
+            .brand::before {
+                content: "G";
+
+                font-size: 22px;
+
+                font-weight: 800;
+
+                color: #60a5fa;
+            }
+
+
+            .nav-section {
+                display: none;
+            }
+
+
+            .sidebar a {
+                justify-content: center;
+
+                padding: 12px 8px;
+            }
+
+
+            .sidebar a span:last-child {
+                display: none;
+            }
+
+
+            .nav-icon {
+                font-size: 18px;
+            }
+
+
+            .main-area {
+                margin-left: 68px;
+            }
+
+
+            .topbar {
+                padding: 0 18px;
+
+                height: 62px;
+            }
+
+
+            .container {
+                padding: 20px 15px;
+            }
+
+
+            .card {
+                padding: 18px;
+            }
+
+
+            th,
+            td {
+                padding: 10px 8px;
+
+                font-size: 12px;
+            }
+
+        }
+
+
+        @media (max-width: 500px) {
+
+            .gym-name {
+                display: none;
+            }
+
+
+            .stat {
+                font-size: 23px;
+            }
+
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            {{ gym.name if gym is defined else "Gym Management" }}
+        </div>
+
+
+        <div class="nav-section">
+            Main
+        </div>
+
+
+        <a href="/dashboard">
+
+            <span class="nav-icon">
+                ▦
+            </span>
+
+            <span>
+                Dashboard
+            </span>
+
+        </a>
+
+
+        <a href="/members">
+
+            <span class="nav-icon">
+                ♙
+            </span>
+
+            <span>
+                Members
+            </span>
+
+        </a>
+
+
+        <a href="/register">
+
+            <span class="nav-icon">
+                +
+            </span>
+
+            <span>
+                Register Member
+            </span>
+
+        </a>
+
+
+        <div class="nav-section">
+            Finance
+        </div>
+
+
+        <a href="/payments">
+
+            <span class="nav-icon">
+                ₵
+            </span>
+
+            <span>
+                Payments
+            </span>
+
+        </a>
+
+
+        <div class="nav-section">
+            System
+        </div>
+
+
+        <a href="/gym-settings">
+
+            <span class="nav-icon">
+                ⚙
+            </span>
+
+            <span>
+                Settings
+            </span>
+
+        </a>
+
+    </aside>
+
+
+
+    <!-- MAIN -->
+
+    <div class="main-area">
+
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div class="topbar-title">
+
+                {% block topbar_title %}
+                Gym Management
+                {% endblock %}
+
+            </div>
+
+
+            <div class="gym-name">
+
+                {{ gym.name if gym is defined else "Gym Management" }}
+
+            </div>
+
+        </header>
+
+
+
+        <!-- PAGE CONTENT -->
+
+        <main class="container">
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+
+</body>
+
+</html>

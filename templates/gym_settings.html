@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Gym Settings{% endblock %}
+
+{% block topbar_title %}
+Gym Settings
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+
+<div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+">
+
+    <div>
+
+        <h1 style="
+            margin:0;
+            font-size:28px;
+            letter-spacing:-.6px;
+        ">
+            Gym Settings
+        </h1>
+
+        <p style="
+            margin:6px 0 0;
+            color:#6b7280;
+            font-size:14px;
+        ">
+            Manage your gym's basic information and membership pricing.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- SETTINGS -->
+
+<div class="settings-layout">
+
+
+    <!-- GYM INFORMATION -->
+
+    <div class="card">
+
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:12px;
+            margin-bottom:22px;
+        ">
+
+            <div style="
+                width:42px;
+                height:42px;
+                border-radius:10px;
+                background:#eff6ff;
+                color:#2563eb;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:19px;
+                font-weight:700;
+            ">
+                G
+            </div>
+
+            <div>
+
+                <h2 style="
+                    margin:0;
+                    font-size:18px;
+                ">
+                    Gym Information
+                </h2>
+
+                <p style="
+                    margin:4px 0 0;
+                    color:#6b7280;
+                    font-size:12px;
+                ">
+                    Basic information displayed throughout the system.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form method="post" action="/gym-settings">
+
+
+            <!-- GYM NAME -->
+
+            <label>
+                Gym Name
+            </label>
+
+            <input type="text" name="name" value="{{ gym.name }}" placeholder="Enter gym name" required>
+
+
+            <!-- CURRENCY -->
+
+            <label>
+                Currency
+            </label>
+
+            <input type="text" name="currency" value="{{ gym.currency }}" placeholder="GHS" required>
+
+
+            <!-- PRICING -->
+
+            <div style="
+                margin-top:28px;
+                padding-top:22px;
+                border-top:1px solid #e5e7eb;
+            ">
+
+                <h3 style="
+                    margin:0;
+                    font-size:15px;
+                    color:#374151;
+                ">
+                    Membership Pricing
+                </h3>
+
+                <p style="
+                    margin:5px 0 18px;
+                    color:#6b7280;
+                    font-size:12px;
+                ">
+                    These prices are used when registering and renewing members.
+                </p>
+
+
+                <!-- REGISTRATION FEE -->
+
+                <label>
+                    Registration + First Month Fee
+                </label>
+
+                <input type="number" name="registration_fee" min="0" value="{{ gym.registration_fee }}" required>
+
+                <p style="
+                    margin:-7px 0 18px;
+                    color:#9ca3af;
+                    font-size:12px;
+                ">
+                    Charged when a new member is registered.
+                </p>
+
+
+                <!-- MONTHLY FEE -->
+
+                <label>
+                    Monthly Renewal Fee
+                </label>
+
+                <input type="number" name="monthly_fee" min="1" value="{{ gym.monthly_fee }}" required>
+
+                <p style="
+                    margin:-7px 0 0;
+                    color:#9ca3af;
+                    font-size:12px;
+                ">
+                    Charged for each additional month after registration.
+                </p>
+
+            </div>
+
+
+            <!-- SAVE -->
+
+            <div style="
+                display:flex;
+                justify-content:flex-end;
+                margin-top:26px;
+                padding-top:20px;
+                border-top:1px solid #e5e7eb;
+            ">
+
+                <button type="submit">
+                    Save Settings
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- PRICING SUMMARY -->
+
+    <div class="card">
+
+        <h2 style="
+            margin:0;
+            font-size:18px;
+        ">
+            Current Pricing
+        </h2>
+
+        <p style="
+            margin:5px 0 20px;
+            color:#6b7280;
+            font-size:12px;
+        ">
+            Quick overview of your current membership charges.
+        </p>
+
+
+        <!-- REGISTRATION -->
+
+        <div style="
+            padding:16px;
+            border:1px solid #e5e7eb;
+            border-radius:10px;
+            margin-bottom:12px;
+        ">
+
+            <div style="
+                color:#6b7280;
+                font-size:12px;
+                margin-bottom:6px;
+            ">
+                Registration + First Month
+            </div>
+
+            <div style="
+                font-size:23px;
+                font-weight:700;
+                color:#111827;
+            ">
+                {{ gym.currency }}
+                {{ "%.2f"|format(gym.registration_fee) }}
+            </div>
+
+        </div>
+
+
+        <!-- MONTHLY -->
+
+        <div style="
+            padding:16px;
+            border:1px solid #e5e7eb;
+            border-radius:10px;
+        ">
+
+            <div style="
+                color:#6b7280;
+                font-size:12px;
+                margin-bottom:6px;
+            ">
+                Monthly Renewal
+            </div>
+
+            <div style="
+                font-size:23px;
+                font-weight:700;
+                color:#111827;
+            ">
+                {{ gym.currency }}
+                {{ "%.2f"|format(gym.monthly_fee) }}
+            </div>
+
+        </div>
+
+
+        <!-- BUSINESS RULE -->
+
+        <div style="
+            margin-top:18px;
+            padding:14px 15px;
+            background:#f9fafb;
+            border:1px solid #e5e7eb;
+            border-radius:9px;
+            font-size:12px;
+            color:#6b7280;
+            line-height:1.6;
+        ">
+
+            <strong style="color:#374151;">
+                Membership rule
+            </strong>
+
+            <br>
+
+            Registration includes the first month.
+            After registration, members renew monthly using
+            the monthly renewal fee.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<style>
+    .settings-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 22px;
+        align-items: start;
+    }
+
+    @media (max-width:800px) {
+
+        .settings-layout {
+            grid-template-columns: 1fr;
+        }
+
+    }
+</style>
+
+{% endblock %}
