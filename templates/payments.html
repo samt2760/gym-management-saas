@@ -9,7 +9,6 @@ Payments
 {% block content %}
 
 <!-- PAGE HEADER -->
-
 <div style="
     display:flex;
     justify-content:space-between;
@@ -20,7 +19,6 @@ Payments
 ">
 
     <div>
-
         <h1 style="
             margin:0;
             font-size:28px;
@@ -36,38 +34,29 @@ Payments
         ">
             Track registration and membership renewal payments.
         </p>
-
     </div>
 
 </div>
 
 
 <!-- REVENUE SUMMARY -->
-
 <div class="grid">
 
     <div class="card">
-
         <div style="
             display:flex;
             justify-content:space-between;
             align-items:flex-start;
         ">
-
             <div>
-
-                <div class="muted" style="
-                    font-size:13px;
-                    font-weight:600;
-                ">
+                <div class="muted" style="font-size:13px;">
                     Total Revenue
                 </div>
 
                 <div class="stat">
-                    {{ gym.currency if gym is defined else "GHS" }}
+                    {{ gym.currency }}
                     {{ "%.2f"|format(total_revenue) }}
                 </div>
-
             </div>
 
             <div style="
@@ -83,34 +72,25 @@ Payments
             ">
                 ₵
             </div>
-
         </div>
-
     </div>
 
 
     <div class="card">
-
         <div style="
             display:flex;
             justify-content:space-between;
             align-items:flex-start;
         ">
-
             <div>
-
-                <div class="muted" style="
-                    font-size:13px;
-                    font-weight:600;
-                ">
+                <div class="muted" style="font-size:13px;">
                     Today's Revenue
                 </div>
 
                 <div class="stat">
-                    {{ gym.currency if gym is defined else "GHS" }}
+                    {{ gym.currency }}
                     {{ "%.2f"|format(today_revenue) }}
                 </div>
-
             </div>
 
             <div style="
@@ -126,34 +106,25 @@ Payments
             ">
                 $
             </div>
-
         </div>
-
     </div>
 
 
     <div class="card">
-
         <div style="
             display:flex;
             justify-content:space-between;
             align-items:flex-start;
         ">
-
             <div>
-
-                <div class="muted" style="
-                    font-size:13px;
-                    font-weight:600;
-                ">
+                <div class="muted" style="font-size:13px;">
                     This Month
                 </div>
 
                 <div class="stat">
-                    {{ gym.currency if gym is defined else "GHS" }}
+                    {{ gym.currency }}
                     {{ "%.2f"|format(month_revenue) }}
                 </div>
-
             </div>
 
             <div style="
@@ -169,16 +140,13 @@ Payments
             ">
                 ↑
             </div>
-
         </div>
-
     </div>
 
 </div>
 
 
-<!-- FILTERS -->
-
+<!-- PAYMENT HISTORY / FILTERS -->
 <div class="card">
 
     <div style="
@@ -190,7 +158,6 @@ Payments
     ">
 
         <div>
-
             <h2 style="
                 margin:0;
                 font-size:17px;
@@ -198,13 +165,13 @@ Payments
                 Payment History
             </h2>
 
-            <p style="margin:5px 0 0;
+            <p style="
+                margin:5px 0 0;
                 color:#6b7280;
                 font-size:12px;
             ">
                 Filter payments by time period.
             </p>
-
         </div>
 
 
@@ -214,23 +181,44 @@ Payments
             flex-wrap:wrap;
         ">
 
-            <a href="/payments?period=all" class="button" style="
-                    background:#111827;
+            <a href=" /payments?period=all" class="button" style="
+                    {% if period == 'all' %}
+                        background:#111827;
+                        color:white;
+                    {% else %}
+                        background:#f3f4f6;
+                        color:#374151;
+                    {% endif %}
+                    
                 ">
                 All
             </a>
 
+
             <a href="/payments?period=today" class="button" style="
-                    background:#f3f4f6;
-                    color:#374151;
-                ">
+                        {% if period == 'today' %}
+                            background:#111827;
+                            color:white;
+                        {% else %}
+                            background:#f3f4f6;
+                            color:#374151;
+                        {% endif %}
+
+                    ">
                 Today
             </a>
 
+
             <a href="/payments?period=month" class="button" style="
-                    background:#f3f4f6;
-                    color:#374151;
-                ">
+                        {% if period == 'month' %}
+                            background:#111827;
+                            color:white;
+                        {% else %}
+                            background:#f3f4f6;
+                            color:#374151;
+                        {% endif %}
+
+                    ">
                 This Month
             </a>
 
@@ -243,49 +231,50 @@ Payments
 
 <!-- PAYMENT GROUPS -->
 
+{% if payment_groups %}
+
 {% for month, group in payment_groups.items() %}
 
 <div class="card">
 
     <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:15px;
-        margin-bottom:18px;
-        flex-wrap:wrap;
-    ">
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;
+                margin-bottom:18px;
+                flex-wrap:wrap;
+            ">
 
         <div>
-
             <h2 style="
-                margin:0;
-                font-size:18px;
-            ">
+                        margin:0;
+                        font-size:18px;
+                    ">
                 {{ month }}
             </h2>
 
             <p style="
-                margin:5px 0 0;
-                color:#6b7280;
-                font-size:12px;
-            ">
-                {{ group.payments|length }} payment{% if group.payments|length != 1 %}s{% endif %}
+                        margin:5px 0 0;
+                        color:#6b7280;
+                        font-size:12px;
+                    ">
+                {{ group.payments|length }}
+                payment{% if group.payments|length != 1 %}s{% endif %}
             </p>
-
         </div>
 
 
         <div style="
-            background:#ecfdf5;
-            color:#047857;
-            padding:8px 12px;
-            border-radius:8px;
-            font-size:13px;
-            font-weight:700;
-        ">
+                    background:#ecfdf5;
+                    color:#047857;
+                    padding:8px 12px;
+                    border-radius:8px;
+                    font-size:13px;
+                    font-weight:700;
+                ">
             Total:
-            {{ gym.currency if gym is defined else "GHS" }}
+            {{ gym.currency }}
             {{ "%.2f"|format(group.total) }}
         </div>
 
@@ -296,77 +285,78 @@ Payments
 
         <table>
 
-            <tr>
-                <th>Date</th>
-                <th>Member</th>
-                <th>Type</th>
-                <th>Amount</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Member</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
 
 
-            {% for payment in group.payments %}
+            <tbody>
 
-            <tr>
+                {% for payment in group.payments %}
 
-                <td>
-                    {{ payment.payment_date }}
-                </td>
+                <tr>
 
-
-                <td>
-
-                    {% if payment.member_id %}
-
-                    <a href="/members/{{ payment.member_id }}" style="
-                            color:#2563eb;
-                            text-decoration:none;
-                            font-weight:600;
-                        ">
-                        {{ payment.member_name }}
-                    </a>
-
-                    {% else %}
-
-                    <span style="
-                        font-weight:600;
-                    ">
-                        {{ payment.member_name }}
-                    </span>
-
-                    {% endif %}
-
-                </td>
+                    <td>
+                        {{ payment.payment_date }}
+                    </td>
 
 
-                <td>
+                    <td>
 
-                    <span style="
-                        display:inline-flex;
-                        padding:5px 9px;
-                        border-radius:6px;
-                        background:#f3f4f6;
-                        color:#374151;
-                        font-size:12px;
-                        font-weight:600;
-                    ">
-                        {{ payment.payment_type }}
-                    </span>
+                        {% if payment.member_id %}
 
-                </td>
+                        <a href="/members/{{ payment.member_id }}" style="
+                                                color:#2563eb;
+                                                text-decoration:none;
+                                                font-weight:600;
+                                            ">
+                            {{ payment.member_name }}</a>
+
+                        {% else %}
+
+                        <span style="font-weight:600;">
+                            {{ payment.member_name }}
+                        </span>
+
+                        {% endif %}
+
+                    </td>
 
 
-                <td>
+                    <td>
 
-                    <strong>
-                        {{ gym.currency if gym is defined else "GHS" }}
-                        {{ "%.2f"|format(payment.amount) }}
-                    </strong>
+                        <span style="
+                                        display:inline-flex;
+                                        padding:5px 9px;
+                                        border-radius:6px;
+                                        background:#f3f4f6;
+                                        color:#374151;
+                                        font-size:12px;
+                                        font-weight:600;
+                                    ">
+                            {{ payment.payment_type }}
+                        </span>
 
-                </td>
+                    </td>
 
-            </tr>
 
-            {% endfor %}
+                    <td>
+                        <strong>
+                            {{ gym.currency }}
+                            {{ "%.2f"|format(payment.amount) }}
+                        </strong>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
 
         </table>
 
@@ -374,44 +364,48 @@ Payments
 
 </div>
 
+{% endfor %}
 
 {% else %}
 
-<!-- NO PAYMENTS -->
+<!-- EMPTY STATE -->
+
 <div class="card">
 
     <div style="
-        text-align:center;
-        padding:45px 20px;
-        color:#6b7280;
-    ">
+            text-align:center;
+            padding:45px 20px;
+            color:#6b7280;
+        ">
 
         <div style="
-            width:50px;
-            height:50px;
-            margin:0 auto 12px;
-            border-radius:12px;
-            background:#f3f4f6;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:22px;
-        ">
+                width:50px;
+                height:50px;
+                margin:0 auto 12px;
+                border-radius:12px;
+                background:#f3f4f6;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:22px;
+            ">
             ₵
         </div>
 
+
         <h2 style="
-            margin:0;
-            color:#374151;
-            font-size:17px;
-        ">
+                margin:0;
+                color:#374151;
+                font-size:17px;
+            ">
             No payments found
         </h2>
 
+
         <p style="
-            margin:6px 0 0;
-            font-size:13px;
-        ">
+                margin:6px 0 0;
+                font-size:13px;
+            ">
             Payment records will appear here once payments are made.
         </p>
 
@@ -419,6 +413,6 @@ Payments
 
 </div>
 
-{% endfor %}
+{% endif %}
 
 {% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Add Existing Member{% endblock %}
+
+{% block topbar_title %}
+Add Existing Member
+{% endblock %}
+
+{% block content %}
+
+<div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+">
+
+    <div>
+
+        <a href="/members" style="
+            color:#6b7280;
+            text-decoration:none;
+            font-size:13px;
+            font-weight:600;
+        ">
+            ← Back to Members
+        </a>
+
+        <h1 style="
+            margin:10px 0 0;
+            font-size:28px;
+            letter-spacing:-.6px;
+        ">
+            Add Existing Member
+        </h1>
+
+        <p style="
+            margin:6px 0 0;
+            color:#6b7280;
+            font-size:14px;
+        ">
+            Add a member who was registered before you started using this system.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="card" style="max-width:700px;">
+
+    <h2 style="
+        margin:0;
+        font-size:18px;
+    ">
+        Member Information
+    </h2>
+
+    <p style="
+        margin:6px 0 24px;
+        color:#6b7280;
+        font-size:13px;
+    ">
+        Enter the member's existing membership information.
+    </p>
+
+
+    <div style="
+        background:#eff6ff;
+        border:1px solid #bfdbfe;
+        color:#1e40af;
+        border-radius:9px;
+        padding:13px 15px;
+        margin-bottom:24px;
+        font-size:13px;
+        line-height:1.5;
+    ">
+        <strong>Important:</strong>
+        No registration payment will be recorded.
+        This member is being added because they already existed
+        before the system was introduced.
+    </div>
+
+
+    <form method="post" action="/members/existing">
+
+        <label>
+            Full Name
+        </label>
+
+        <input type="text" name="full_name" placeholder="Enter full name" required>
+
+
+        <label>
+            Phone
+        </label>
+
+        <input type="text" name="phone" placeholder="Enter phone number" required>
+
+
+        <label>
+            Email
+            <span style="
+                color:#9ca3af;
+                font-weight:400;
+            ">
+                (optional)
+            </span>
+        </label>
+
+        <input type="email" name="email" placeholder="Enter email address">
+
+
+        <label>
+            Date of Birth
+            <span style="
+                color:#9ca3af;
+                font-weight:400;
+            ">
+                (optional)
+            </span>
+        </label>
+
+        <input type="date" name="date_of_birth">
+
+
+        <label>
+            Original Registration Date
+        </label>
+
+        <input type="date" name="registration_date" required>
+
+
+        <label>
+            Current Membership Due Date
+        </label>
+
+        <input type="date" name="payment_due_date" required>
+
+        <p style="
+            margin:-7px 0 20px;
+            color:#9ca3af;
+            font-size:12px;
+        ">
+            Enter the date this member's current paid membership ends.
+        </p>
+
+
+        <div style="
+            display:flex;
+            gap:10px;
+            margin-top:8px;
+            flex-wrap:wrap;
+        ">
+
+            <button type="submit">
+                Add Existing Member
+            </button>
+
+            <a href="/members" class="button" style="
+                background:#f3f4f6;
+                color:#374151;
+            ">
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

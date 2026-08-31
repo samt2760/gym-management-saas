@@ -1,13 +1,9 @@
 {% extends "base.html" %}
-
 {% block title %}Dashboard{% endblock %}
-
 {% block topbar_title %}
 Dashboard
 {% endblock %}
-
 {% block content %}
-
 <!-- PAGE HEADER -->
 <div style="
     display:flex;
@@ -17,21 +13,20 @@ Dashboard
     margin-bottom:28px;
     flex-wrap:wrap;
 ">
-
     <div>
         <h1 style="
-            margin:0;
-            font-size:28px;
-            letter-spacing:-.6px;
-        ">
+        margin:0;
+        font-size:28px;
+        letter-spacing:-.6px;
+    ">
             Dashboard
         </h1>
 
         <p style="
-            margin:6px 0 0;
-            color:#6b7280;
-            font-size:14px;
-        ">
+        margin:6px 0 0;
+        color:#6b7280;
+        font-size:14px;
+    ">
             Overview of your gym's activity and membership
         </p>
     </div>
@@ -39,39 +34,29 @@ Dashboard
     <a href="/register" class="button">
         + Register Member
     </a>
-
 </div>
-
-
 <!-- MEMBERSHIP OVERVIEW -->
 <div style="
     display:flex;
     align-items:center;
-    justify-content:space-between;
     margin-bottom:14px;
 ">
     <h2 style="
-        margin:0;
-        font-size:17px;
-    ">
+    margin:0;
+    font-size:17px;
+">
         Membership Overview
     </h2>
 </div>
-
-
-<div class="grid">
-
+<!-- MEMBERSHIP CARDS -->
+<div class="dashboard-grid">
     <!-- TOTAL MEMBERS -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
+        <div class="dashboard-card-content">
 
             <div>
-                <div class="muted" style="font-size:13px;">
+                <div class="muted dashboard-label">
                     Total Members
                 </div>
 
@@ -80,17 +65,7 @@ Dashboard
                 </div>
             </div>
 
-            <div style="
-                width:42px;
-                height:42px;
-                border-radius:10px;
-                background:#eff6ff;
-                color:#2563eb;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:20px;
-            ">
+            <div class="dashboard-icon blue">
                 ♙
             </div>
 
@@ -100,16 +75,12 @@ Dashboard
 
 
     <!-- ACTIVE MEMBERS -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
+        <div class="dashboard-card-content">
 
             <div>
-                <div class="muted" style="font-size:13px;">
+                <div class="muted dashboard-label">
                     Active Members
                 </div>
 
@@ -118,17 +89,7 @@ Dashboard
                 </div>
             </div>
 
-            <div style="
-                width:42px;
-                height:42px;
-                border-radius:10px;
-                background:#ecfdf5;
-                color:#059669;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:20px;
-            ">
+            <div class="dashboard-icon green">
                 ✓
             </div>
 
@@ -138,16 +99,12 @@ Dashboard
 
 
     <!-- EXPIRED MEMBERS -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
+        <div class="dashboard-card-content">
 
             <div>
-                <div class="muted" style="font-size:13px;">
+                <div class="muted dashboard-label">
                     Expired Members
                 </div>
 
@@ -156,17 +113,7 @@ Dashboard
                 </div>
             </div>
 
-            <div style="
-                width:42px;
-                height:42px;
-                border-radius:10px;
-                background:#fef2f2;
-                color:#dc2626;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:20px;
-            ">
+            <div class="dashboard-icon red">
                 !
             </div>
 
@@ -176,280 +123,225 @@ Dashboard
 
 
     <!-- DUE SOON -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
+        <div class="dashboard-card-content">
 
             <div>
-                <div class="muted" style="font-size:13px;">
+                <div class="muted dashboard-label">
                     Due Within 7 Days
                 </div>
 
                 <div class="stat">
-                    {{ members_due_soon }}</div>
+                    {{ members_due_soon|length }}
+                </div>
             </div>
 
-            <div style="
-                width:42px;
-                height:42px;
-                border-radius:10px;
-                background:#fff7ed;
-                color:#d97706;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:20px;
-            ">
+            <div class="dashboard-icon orange">
                 ⏱
             </div>
 
         </div>
 
     </div>
-
 </div>
-
-
 <!-- REVENUE -->
 <div style="
     display:flex;
     align-items:center;
-    justify-content:space-between;
     margin-top:32px;
     margin-bottom:14px;
 ">
-
     <h2 style="
-        margin:0;
-        font-size:17px;
-    ">
+    margin:0;
+    font-size:17px;
+">
         Revenue
     </h2>
-
 </div>
-
-
-<div class="grid">
-
+<!-- REVENUE CARDS -->
+<div class="dashboard-grid revenue-grid">
     <!-- TOTAL COLLECTED -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div class="muted" style="font-size:13px;">
-            Total Collected
-        </div>
+        <div class="dashboard-card-content">
 
-        <div class="stat" style="font-size:25px;">
-            {{ gym.currency }}
-            {{ "%.2f"|format(total_collected) }}
-        </div>
+            <div>
+                <div class="muted dashboard-label">
+                    Total Collected
+                </div>
 
-        <div style="
-            margin-top:8px;
-            font-size:12px;
-            color:#6b7280;
-        ">
-            All recorded payments
+                <div class="stat">
+                    {{ gym.currency }}
+                    {{ "%.2f"|format(total_collected) }}
+                </div>
+            </div>
+
+            <div class="dashboard-icon green">
+                ₵
+            </div>
+
         </div>
 
     </div>
 
 
     <!-- TODAY -->
-    <div class="card" style="margin-bottom:0;">
+    <div class="card dashboard-card">
 
-        <div class="muted" style="font-size:13px;">
-            Today's Revenue
-        </div>
+        <div class="dashboard-card-content">
 
-        <div class="stat" style="font-size:25px;">
-            {{ gym.currency }}
-            {{ "%.2f"|format(today_revenue) }}
-        </div>
+            <div>
+                <div class="muted dashboard-label">
+                    Today's Revenue
+                </div>
 
-        <div style="
-            margin-top:8px;
-            font-size:12px;
-            color:#059669;
-        ">
-            Revenue collected today
-        </div>
+                <div class="stat">
+                    {{ gym.currency }}
+                    {{ "%.2f"|format(today_revenue) }}
+                </div>
+            </div>
 
-    </div>
+            <div class="dashboard-icon purple">
+                $
+            </div>
 
-
-    <!-- MONTH -->
-    <div class="card" style="margin-bottom:0;">
-
-        <div class="muted" style="font-size:13px;">
-            This Month
-        </div>
-
-        <div class="stat" style="font-size:25px;">
-            {{ gym.currency }}
-            {{ "%.2f"|format(month_revenue) }}
-        </div>
-
-        <div style="
-            margin-top:8px;
-            font-size:12px;
-            color:#2563eb;
-        ">
-            Current month's revenue
         </div>
 
     </div>
 
+
+    <!-- THIS MONTH -->
+    <div class="card dashboard-card">
+
+        <div class="dashboard-card-content">
+
+            <div>
+                <div class="muted dashboard-label">
+                    This Month
+                </div>
+
+                <div class="stat">
+                    {{ gym.currency }}
+                    {{ "%.2f"|format(month_revenue) }}</div>
+            </div>
+
+            <div class="dashboard-icon orange">
+                ↗
+            </div>
+
+        </div>
+
+    </div>
 </div>
-
-
-<!-- DUE SOON -->
-<div class="card" style="margin-top:32px;">
-
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:15px;
-        margin-bottom:18px;
-        flex-wrap:wrap;
-    ">
+<!-- MEMBERS DUE SOON -->
+<div class="card dashboard-section">
+    <div class="section-header">
 
         <div>
-            <h2 style="
-                margin:0;
-                font-size:17px;
-            ">
+            <h2>
                 Members Due Soon
             </h2>
 
-            <p style="
-                margin:5px 0 0;
-                color:#6b7280;
-                font-size:13px;
-            ">
-                Members whose membership expires within 7 days
+            <p>
+                Memberships expiring within the next 7 days
             </p>
         </div>
+
+        <a href="/members" class="button">
+            View Members
+        </a>
 
     </div>
 
 
     {% if due_soon_members %}
 
-    <table>
+    <div class="table-container">
 
-        <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Due Date</th>
-            <th>Action</th>
-        </tr>
+        <table>
 
-        {% for member in due_soon_members %}
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Due Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
 
-        <tr>
+            <tbody>
 
-            <td>
-                <strong>{{ member.full_name }}</strong>
-            </td>
+                {% for member in due_soon_members %}
 
-            <td>
-                {{ member.phone }}
-            </td>
+                <tr>
 
-            <td>
-                {{ member.payment_due_date }}
-            </td>
+                    <td>
+                        <strong>
+                            {{ member.full_name }}
+                        </strong>
+                    </td>
 
-            <td>
-                <a class="button" href="/members/{{ member.id }}" style="
-                        padding:8px 13px;
-                        font-size:12px;
-                    ">
-                    View
-                </a>
-            </td>
+                    <td>
+                        {{ member.phone }}
+                    </td>
 
-        </tr>
+                    <td>
+                        {{ member.payment_due_date }}
+                    </td>
 
-        {% endfor %}
+                    <td class="action-cell">
+                        <a href="/members/{{ member.id }}" class="button small-button">
+                            View
+                        </a>
+                    </td>
 
-    </table>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
 
     {% else %}
 
-    <div style="
-        text-align:center;
-        padding:35px 20px;
-        color:#6b7280;
-    ">
+    <div class="empty-state">
 
-        <div style="
-            font-size:28px;
-            margin-bottom:8px;
-        ">
+        <div class="empty-icon">
             ✓
         </div>
 
-        <strong style="
-            color:#374151;
-        ">
+        <strong>
             No members due soon
         </strong>
-        <p style="
-            margin:5px 0 0;
-            font-size:13px;
-        ">
-            No memberships are expiring within the next 7 days.
+
+        <p>
+            No active memberships expire within the next 7 days.
         </p>
 
     </div>
 
     {% endif %}
-
 </div>
-
-
 <!-- RECENT MEMBERS -->
-<div class="card">
-
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:15px;
-        margin-bottom:18px;
-        flex-wrap:wrap;
-    ">
+<div class="card dashboard-section">
+    <div class="section-header">
 
         <div>
-            <h2 style="
-                margin:0;
-                font-size:17px;
-            ">
+            <h2>
                 Recent Members
             </h2>
 
-            <p style="
-                margin:5px 0 0;
-                color:#6b7280;
-                font-size:13px;
-            ">
-                Recently registered members
+            <p>
+                Latest members registered at your gym
             </p>
         </div>
 
-        <a href="/members" style="
-                color:#2563eb;
-                text-decoration:none;
-                font-size:13px;
-                font-weight:600;
-            ">
-            View All →
+        <a href="/members" class="button">
+            View All
         </a>
 
     </div>
@@ -457,114 +349,289 @@ Dashboard
 
     {% if recent_members %}
 
-    <table>
+    <div class="table-container">
 
-        <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Status</th>
-            <th>Action</th>
-        </tr>
+        <table>
 
-        {% for member in recent_members %}
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Membership</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
 
-        <tr>
+            <tbody>
 
-            <td>
-                <strong>{{ member.full_name }}</strong>
-            </td>
+                {% for member in recent_members %}
 
-            <td>
-                {{ member.phone }}
-            </td>
+                <tr>
 
-            <td>
+                    <td>
+                        <strong>
+                            {{ member.full_name }}
+                        </strong>
+                    </td>
 
-                {% if member.status == 'Active' %}
+                    <td>
+                        {{ member.phone }}
+                    </td>
 
-                <span style="
-                    display:inline-flex;
-                    align-items:center;
-                    padding:5px 10px;
-                    border-radius:20px;
-                    background:#ecfdf5;
-                    color:#047857;
-                    font-size:12px;
-                    font-weight:600;
-                ">
-                    ● Active
-                </span>
+                    <td>
+                        {{ member.membership_type }}
+                    </td>
 
-                {% else %}
+                    <td>
+                        {{ member.payment_due_date }}
+                    </td>
 
-                <span style="
-                    display:inline-flex;
-                    align-items:center;
-                    padding:5px 10px;
-                    border-radius:20px;
-                    background:#fef2f2;
-                    color:#b91c1c;
-                    font-size:12px;
-                    font-weight:600;
-                ">
-                    ● {{ member.status }}
-                </span>
+                    <td>
 
-                {% endif %}
+                        {% if member.status == "Active" %}
 
-            </td>
+                        <span class="status active">
+                            ● Active
+                        </span>
 
-            <td>
+                        {% else %}
 
-                <a class="button" href="/members/{{ member.id }}" style="
-                        padding:8px 13px;
-                        font-size:12px;
-                    ">
-                    View
-                </a>
+                        <span class="status expired">
+                            ● Expired
+                        </span>
 
-            </td>
+                        {% endif %}
 
-        </tr>
+                    </td>
 
-        {% endfor %}
+                    <td class="action-cell">
 
-    </table>
+                        <a href="/members/{{ member.id }}" class="button small-button">
+                            View
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
 
     {% else %}
 
-    <div style="
-        text-align:center;
-        padding:35px 20px;
-        color:#6b7280;
-    ">
+    <div class="empty-state">
 
-        <div style="
-            font-size:28px;
-            margin-bottom:8px;
-        ">
-            ♙
-        </div>
-
-        <strong style="color:#374151;">
-            No members yet
+        <strong>
+            No members registered yet.
         </strong>
 
-        <p style="
-            margin:5px 0 15px;
-            font-size:13px;
-        ">
-            Start by registering your first gym member.
+        <p>
+            Register your first member to get started.
         </p>
-
-        <a href="/register" class="button">
-            + Register Member
-        </a>
 
     </div>
 
     {% endif %}
-
 </div>
+<!-- DASHBOARD STYLES -->
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        width: 100%;
+        margin-bottom: 0;
+    }
 
+    .revenue-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 32px;
+    }
+
+    .dashboard-card {
+        margin-bottom: 0;
+        min-width: 0;
+    }
+
+    .dashboard-card-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .dashboard-label {
+        font-size: 13px;
+    }
+
+    .dashboard-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .dashboard-icon.blue {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .dashboard-icon.green {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .dashboard-icon.red {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .dashboard-icon.orange {
+        background: #fff7ed;
+        color: #d97706;
+    }
+
+    .dashboard-icon.purple {
+        background: #f5f3ff;
+        color: #7c3aed;
+    }
+
+    .dashboard-section {
+        margin-bottom: 32px;
+        overflow: hidden;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .section-header h2 {
+        margin: 0;
+        font-size: 17px;
+    }
+
+    .section-header p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .table-container table {
+        width: 100%;
+        min-width: 650px;
+        border-collapse: collapse;
+    }
+
+    .action-cell {
+        text-align: right;
+    }
+
+    .small-button {
+        padding: 8px 13px;
+        font-size: 12px;
+    }
+
+    .status {
+        display: inline-block;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status.active {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .status.expired {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .empty-state {
+        padding: 32px 20px;
+        text-align: center;
+        color: #6b7280;
+        background: #f9fafb;
+        border-radius: 10px;
+    }
+
+    .empty-state strong {
+        color: #374151;
+    }
+
+    .empty-state p {
+        margin: 5px 0 0;
+        font-size: 13px;
+    }
+
+    .empty-icon {
+        width: 42px;
+        height: 42px;
+        margin: 0 auto 10px;
+        border-radius: 50%;
+        background: #ecfdf5;
+        color: #059669;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 20px;
+    }
+
+
+    /* TABLET */
+    @media (max-width:1000px) {
+
+        .dashboard-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .revenue-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+    }
+
+
+    /* MOBILE */
+    @media (max-width:650px) {
+
+        .dashboard-grid,
+        .revenue-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .section-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .section-header .button {
+            width: auto;
+        }
+
+    }
+</style>
 {% endblock %}
