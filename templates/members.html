@@ -58,17 +58,19 @@ Members
 </div>
 
 
-<!-- SEARCH -->
+<!-- SEARCH & FILTERS -->
 <div class="card">
 
     <form method="get" action="/members" style="
-            display:flex;
-            align-items:flex-end;
-            gap:12px;
-            margin:0;
-        ">
+        display:flex;
+        align-items:flex-end;
+        gap:12px;
+        flex-wrap:wrap;
+        margin:0;
+    ">
 
-        <div style="flex:1;">
+        <!-- SEARCH -->
+        <div style="flex:1; min-width:220px;">
 
             <label style="
                 display:block;
@@ -80,26 +82,115 @@ Members
                 Search Members
             </label>
 
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or phone" style="
-                    margin:0;
-                ">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or phone"
+                style="margin:0;">
 
         </div>
 
-        <button type="submit" style="
-                height:45px;
-                padding:0 20px;
+
+        <!-- STATUS -->
+        <div style="min-width:160px;">
+
+            <label style="
+                display:block;
+                font-size:13px;
+                font-weight:600;
+                color:#374151;
+                margin-bottom:5px;
             ">
-            Search
+                Status
+            </label>
+
+            <select name="status" style="
+                height:45px;
+                width:100%;
+                margin:0;
+            ">
+                <option value="all" {% if status=="all" %}selected{% endif %}>
+                    All Members
+                </option>
+
+                <option value="active" {% if status=="active" %}selected{% endif %}>
+                    Active
+                </option>
+
+                <option value="expired" {% if status=="expired" %}selected{% endif %}>
+                    Expired
+                </option>
+
+                <option value="due_soon" {% if status=="due_soon" %}selected{% endif %}>
+                    Due Within 7 Days
+                </option>
+            </select>
+
+        </div>
+
+
+        <!-- SORT -->
+        <div style="min-width:190px;">
+
+            <label style="
+                display:block;
+                font-size:13px;
+                font-weight:600;
+                color:#374151;
+                margin-bottom:5px;
+            ">
+                Sort By
+            </label>
+
+            <select name="sort" style="
+                height:45px;
+                width:100%;
+                margin:0;
+            ">
+
+                <option value="name" {% if sort=="name" %}selected{% endif %}>
+                    Name (A–Z)
+                </option>
+
+                <option value="name_desc" {% if sort=="name_desc" %}selected{% endif %}>
+                    Name (Z–A)
+                </option>
+
+                <option value="registration_newest" {% if sort=="registration_newest" %}selected{% endif %}>
+                    Registration (Newest)
+                </option>
+
+                <option value="registration_oldest" {% if sort=="registration_oldest" %}selected{% endif %}>
+                    Registration (Oldest)
+                </option>
+
+                <option value="expiry_soonest" {% if sort=="expiry_soonest" %}selected{% endif %}>
+                    Expiry (Soonest)
+                </option>
+
+                <option value="expiry_latest" {% if sort=="expiry_latest" %}selected{% endif %}>
+                    Expiry (Latest)
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- APPLY -->
+        <button type="submit" style="
+            height:45px;
+            padding:0 20px;
+        ">
+            Apply
         </button>
 
-        {% if search %}
+
+        <!-- CLEAR -->
+        {% if search or status != "all" or sort != "expiry_soonest" %}
 
         <a href="/members" class="button" style="
-                height:45px;
-                background:#f3f4f6;
-                color:#374151;
-            ">
+            height:45px;
+            background:#f3f4f6;
+            color:#374151;
+        ">
             Clear
         </a>
 
@@ -108,7 +199,6 @@ Members
     </form>
 
 </div>
-
 
 <!-- MEMBERS TABLE -->
 <div class="card">

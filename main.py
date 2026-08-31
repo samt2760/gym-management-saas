@@ -239,8 +239,12 @@ def dashboard(
 def members_page(
     request: Request,
     search: str = "",
+    status: str = "all",
+    sort: str = "expiry_soonest",
     db: Session = Depends(get_db),
 ):
+    today = date.today()
+
     update_member_status(db)
 
     gym = get_or_create_gym(db)
@@ -253,6 +257,10 @@ def members_page(
         )
     )
 
+    # --------------------------------------------------------
+    # SEARCH
+    # --------------------------------------------------------
+
     if search.strip():
 
         search_term = f"%{search.strip()}%"
@@ -262,11 +270,134 @@ def members_page(
             | Member.phone.ilike(search_term)
         )
 
-    members = (
-        query
-        .order_by(Member.id.desc())
-        .all()
+    # --------------------------------------------------------
+    # STATUS FILTER
+    # --------------------------------------------------------
+
+    if status == "active":
+
+        query = query.filter(
+            Member.payment_due_date >= today
+        )
+
+    elif status == "expired":
+
+        query = query.filter(
+            Member.payment_due_date < today
+        )
+
+    elif status == "due_soon":
+
+        query = query.filter(
+            Member.payment_due_date >= today,
+            Member.payment_due_date <= today + timedelta(days=7),
+        )
+
+    else:
+
+        status = "all"
+
+    # --------------------------------------------------------
+    # SORT
+    # --------------------------------------------------------
+
+    if sort == "name_asc":
+
+        query = query.order_by(
+            Member.full_name.asc(),
+            Member.id.desc(),
+        )
+
+    elif sort == "name_desc":
+
+        query = query.order_by(
+            Member.full_name.desc(),
+            Member.id.desc(),
+        )
+
+    elif sort == "registration_newest":
+
+        query = query.order_by(
+            Member.registration_date.desc(),
+            Member.id.desc(),
+        )
+
+    elif sort == "registration_oldest":
+
+        query = query.order_by(
+            Member.registration_date.asc(),
+            Member.id.desc(),
+        )
+
+    elif sort == "expiry_latest":
+
+        query = query.order_by(
+            Member.payment_due_date.desc(),
+            Member.id.desc(),
+        )
+
+    else:
+
+        sort = "expiry_soonest"
+
+        query = query.order_by(
+            Member.payment_due_date.asc(),
+            Member.id.desc(),
+        )
+
+    # --------------------------------------------------------
+    # GET MEMBERS
+    # --------------------------------------------------------
+
+    members = query.all()
+
+    # --------------------------------------------------------
+    # COUNTS
+    # --------------------------------------------------------
+
+    total_members = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == gym.id,
+            Member.deleted_at.is_(None),
+        )
+        .count()
     )
+
+    active_count = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == gym.id,
+            Member.deleted_at.is_(None),
+            Member.payment_due_date >= today,
+        )
+        .count()
+    )
+
+    expired_count = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == gym.id,
+            Member.deleted_at.is_(None),
+            Member.payment_due_date < today,
+        )
+        .count()
+    )
+
+    due_soon_count = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == gym.id,
+            Member.deleted_at.is_(None),
+            Member.payment_due_date >= today,
+            Member.payment_due_date <= today + timedelta(days=7),
+        )
+        .count()
+    )
+
+    # --------------------------------------------------------
+    # PAGE
+    # --------------------------------------------------------
 
     return templates.TemplateResponse(
         request=request,
@@ -274,7 +405,13 @@ def members_page(
         context={
             "members": members,
             "search": search,
+            "status": status,
+            "sort": sort,
             "gym": gym,
+            "total_members": total_members,
+            "active_count": active_count,
+            "expired_count": expired_count,
+            "due_soon_count": due_soon_count,
         },
     )
 
@@ -336,123 +473,6 @@ def create_member(
             )
         }
 
-    # ============================================================
-# ADD EXISTING MEMBER PAGE
-# ============================================================
-
-
-@app.get("/members/existing")
-def existing_member_page(
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    gym = get_or_create_gym(db)
-
-    return templates.TemplateResponse(
-        request=request,
-        name="existing_member.html",
-        context={
-            "gym": gym,
-        },
-    )
-
-    # ============================================================
-# ADD EXISTING MEMBER
-# ============================================================
-
-
-@app.post("/members/existing")
-def create_existing_member(
-    full_name: str = Form(...),
-    phone: str = Form(...),
-    registration_date: date = Form(...),
-    payment_due_date: date = Form(...),
-    email: str = Form(""),
-    date_of_birth: date | None = Form(None),
-    db: Session = Depends(get_db),
-):
-    gym = get_or_create_gym(db)
-
-    name = full_name.strip()
-    phone_number = phone.strip()
-
-    if not name:
-        return {
-            "error": "Full name is required."
-        }
-
-    if not phone_number:
-        return {
-            "error": "Phone number is required."
-        }
-
-    if payment_due_date < registration_date:
-        return {
-            "error": (
-                "Payment due date cannot be earlier "
-                "than the registration date."
-            )
-        }
-
-    # --------------------------------------------------------
-    # DUPLICATE NAME CHECK
-    # --------------------------------------------------------
-
-    duplicate = (
-        db.query(Member)
-        .filter(
-            Member.gym_id == gym.id,
-            Member.deleted_at.is_(None),
-            Member.full_name.ilike(name),
-        )
-        .first()
-    )
-
-    if duplicate:
-        return {
-            "error": (
-                f"A member named '{name}' already exists."
-            )
-        }
-
-    # --------------------------------------------------------
-    # CREATE EXISTING MEMBER
-    # --------------------------------------------------------
-
-    now = datetime.utcnow()
-
-    member = Member(
-        gym_id=gym.id,
-        full_name=name,
-        phone=phone_number,
-        email=email.strip() or None,
-        date_of_birth=date_of_birth,
-        registration_date=registration_date,
-        membership_type="Monthly",
-        payment_due_date=payment_due_date,
-        status=(
-            "Active"
-            if payment_due_date >= date.today()
-            else "Expired"
-        ),
-        deleted_at=None,
-        created_at=now,
-        updated_at=now,
-    )
-
-    db.add(member)
-    db.commit()
-    db.refresh(member)
-
-    # IMPORTANT:
-    # No registration payment is created.
-    # This member already existed before the system.
-
-    return RedirectResponse(
-        url=f"/members/{member.id}",
-        status_code=303,
-    )
-
     # --------------------------------------------------------
     # DUPLICATE NAME CHECK
     # --------------------------------------------------------
@@ -486,8 +506,7 @@ def create_existing_member(
         phone=phone_number,
         email=email.strip() or None,
         date_of_birth=date_of_birth,
-        registration_date=registration_date,
-        membership_type="Monthly",
+        registration_date=registration_date, membership_type="Monthly",
         payment_due_date=(
             registration_date
             + relativedelta(months=1)
@@ -504,8 +523,8 @@ def create_existing_member(
     # --------------------------------------------------------
     # REGISTRATION PAYMENT
     #
-    # Registration payment records the registration fee.
-    # The first month is represented by the member's
+    # Registration payment records only the registration fee.
+    # The first month is represented by the initial
     # one-month payment_due_date.
     # --------------------------------------------------------
 
@@ -660,9 +679,7 @@ def update_member(
             "error": "Member not found."
         }
 
-    name = full_name.strip()
-
-    # --------------------------------------------------------
+    name = full_name.strip()  # --------------------------------------------------------
     # DUPLICATE NAME CHECK
     # --------------------------------------------------------
 
@@ -844,16 +861,18 @@ def renew_membership(
 # ============================================================
 
 @app.get("/payments")
-def payments_page(
-    request: Request,
-    period: str = "all",
-    db: Session = Depends(get_db),
-):
+def payments_page(request: Request,
+                  period: str = "all",
+                  db: Session = Depends(get_db),
+                  ):
     today = date.today()
 
     gym = get_or_create_gym(db)
 
-    # Get payments belonging only to this gym
+    # --------------------------------------------------------
+    # GET PAYMENTS
+    # --------------------------------------------------------
+
     all_payments = (
         db.query(Payment)
         .filter(Payment.gym_id == gym.id)
@@ -864,8 +883,12 @@ def payments_page(
         .all()
     )
 
-    # Filter displayed payments
+    # --------------------------------------------------------
+    # FILTER DISPLAYED PAYMENTS
+    # --------------------------------------------------------
+
     if period == "today":
+
         payments = [
             payment
             for payment in all_payments
@@ -873,6 +896,7 @@ def payments_page(
         ]
 
     elif period == "month":
+
         payments = [
             payment
             for payment in all_payments
@@ -883,10 +907,14 @@ def payments_page(
         ]
 
     else:
+
         period = "all"
         payments = all_payments
 
-    # Revenue totals
+    # --------------------------------------------------------
+    # REVENUE TOTALS
+    # --------------------------------------------------------
+
     total_revenue = sum(
         payment.amount
         for payment in all_payments
@@ -907,7 +935,10 @@ def payments_page(
         )
     )
 
-    # Group displayed payments by month
+    # --------------------------------------------------------
+    # GROUP PAYMENTS BY MONTH
+    # --------------------------------------------------------
+
     payment_groups = {}
 
     for payment in payments:
@@ -915,6 +946,7 @@ def payments_page(
         month_key = payment.payment_date.strftime("%B %Y")
 
         if month_key not in payment_groups:
+
             payment_groups[month_key] = {
                 "payments": [],
                 "total": 0,
@@ -923,6 +955,10 @@ def payments_page(
         payment_groups[month_key]["payments"].append(payment)
 
         payment_groups[month_key]["total"] += payment.amount
+
+    # --------------------------------------------------------
+    # PAGE
+    # --------------------------------------------------------
 
     return templates.TemplateResponse(
         request=request,
@@ -936,10 +972,11 @@ def payments_page(
             "period": period,
         },
     )
+
+
 # ============================================================
 # GYM SETTINGS
 # ============================================================
-
 
 @app.get("/gym-settings")
 def gym_settings(
