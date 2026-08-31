@@ -729,6 +729,10 @@ def update_member(
 # DELETE MEMBER
 # ============================================================
 
+# ============================================================
+# DELETE MEMBER
+# ============================================================
+
 @app.post("/members/{member_id}/delete")
 def delete_member(
     member_id: int,
@@ -751,20 +755,16 @@ def delete_member(
             "error": "Member not found."
         }
 
-    # Preserve payment history.
-    payments = (
-        db.query(Payment)
-        .filter(
-            Payment.member_id == member.id,
-            Payment.gym_id == gym.id,
-        )
-        .all()
-    )
+    # --------------------------------------------------------
+    # SOFT DELETE
+    # --------------------------------------------------------
+    # Keep the member record and payment history.
+    # deleted_at marks the member as deleted.
+    # The existing Active/Expired status remains valid.
 
-    for payment in payments:
-        payment.member_id = None
+    member.deleted_at = datetime.utcnow()
+    member.updated_at = datetime.utcnow()
 
-    db.delete(member)
     db.commit()
 
     return RedirectResponse(
@@ -772,10 +772,10 @@ def delete_member(
         status_code=303,
     )
 
-
 # ============================================================
 # RENEW MEMBERSHIP
 # ============================================================
+
 
 @app.post("/members/{member_id}/renew")
 def renew_membership(

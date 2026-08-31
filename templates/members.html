@@ -8,8 +8,11 @@ Members
 
 {% block content %}
 
-<!-- PAGE HEADER -->
-<div style="
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="members-page-header" style="
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -36,16 +39,16 @@ Members
         </p>
     </div>
 
-    <div style="
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-">
 
-        <a href="/members/existing" class="button" style="
-        background:#f3f4f6;
-        color:#374151;
+    <!-- ACTION BUTTONS -->
+
+    <div class="member-actions" style="
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
     ">
+
+        <a href="/members/existing" class="button secondary-button">
             + Existing Member
         </a>
 
@@ -58,54 +61,129 @@ Members
 </div>
 
 
-<!-- SEARCH & FILTERS -->
-<div class="card">
+<!-- =========================================================
+     MEMBER SUMMARY
+     ========================================================= -->
 
-    <form method="get" action="/members" style="
-        display:flex;
-        align-items:flex-end;
-        gap:12px;
-        flex-wrap:wrap;
-        margin:0;
-    ">
+<div class="member-summary-grid">
+
+    <!-- TOTAL -->
+
+    <div class="card summary-card">
+
+        <div>
+            <div class="muted summary-label">
+                Total Members
+            </div>
+
+            <div class="summary-number">
+                {{ total_members }}
+            </div>
+        </div>
+
+        <div class="summary-icon total-icon">
+            ♙
+        </div>
+
+    </div>
+
+
+    <!-- ACTIVE -->
+
+    <div class="card summary-card">
+
+        <div>
+            <div class="muted summary-label">
+                Active
+            </div>
+
+            <div class="summary-number">
+                {{ active_count }}
+            </div>
+        </div>
+
+        <div class="summary-icon active-icon">
+            ✓
+        </div>
+
+    </div>
+
+
+    <!-- EXPIRED -->
+
+    <div class="card summary-card">
+
+        <div>
+            <div class="muted summary-label">
+                Expired
+            </div>
+
+            <div class="summary-number">
+                {{ expired_count }}
+            </div>
+        </div>
+
+        <div class="summary-icon expired-icon">
+            !
+        </div>
+
+    </div>
+
+
+    <!-- DUE SOON -->
+
+    <div class="card summary-card">
+
+        <div>
+            <div class="muted summary-label">
+                Due Within 7 Days
+            </div>
+
+            <div class="summary-number">
+                {{ due_soon_count }}
+            </div>
+        </div>
+
+        <div class="summary-icon due-icon">
+            ⏱
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SEARCH + FILTERS
+     ========================================================= -->
+
+<div class="card members-filters">
+
+    <form method="get" action="/members" class="filter-form">
 
         <!-- SEARCH -->
-        <div style="flex:1; min-width:220px;">
 
-            <label style="
-                display:block;
-                font-size:13px;
-                font-weight:600;
-                color:#374151;
-                margin-bottom:5px;
-            ">
+        <div class="filter-field search-field">
+
+            <label>
                 Search Members
             </label>
 
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or phone"
-                style="margin:0;">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or phone">
 
         </div>
 
 
         <!-- STATUS -->
-        <div style="min-width:160px;">
 
-            <label style="
-                display:block;
-                font-size:13px;
-                font-weight:600;
-                color:#374151;
-                margin-bottom:5px;
-            ">
+        <div class="filter-field">
+
+            <label>
                 Status
             </label>
 
-            <select name="status" style="
-                height:45px;
-                width:100%;
-                margin:0;
-            ">
+            <select name="status">
+
                 <option value="all" {% if status=="all" %}selected{% endif %}>
                     All Members
                 </option>
@@ -117,56 +195,47 @@ Members
                 <option value="expired" {% if status=="expired" %}selected{% endif %}>
                     Expired
                 </option>
-
                 <option value="due_soon" {% if status=="due_soon" %}selected{% endif %}>
                     Due Within 7 Days
                 </option>
+
             </select>
 
         </div>
 
 
         <!-- SORT -->
-        <div style="min-width:190px;">
 
-            <label style="
-                display:block;
-                font-size:13px;
-                font-weight:600;
-                color:#374151;
-                margin-bottom:5px;
-            ">
+        <div class="filter-field">
+
+            <label>
                 Sort By
             </label>
 
-            <select name="sort" style="
-                height:45px;
-                width:100%;
-                margin:0;
-            ">
-
-                <option value="name" {% if sort=="name" %}selected{% endif %}>
-                    Name (A–Z)
-                </option>
-
-                <option value="name_desc" {% if sort=="name_desc" %}selected{% endif %}>
-                    Name (Z–A)
-                </option>
-
-                <option value="registration_newest" {% if sort=="registration_newest" %}selected{% endif %}>
-                    Registration (Newest)
-                </option>
-
-                <option value="registration_oldest" {% if sort=="registration_oldest" %}selected{% endif %}>
-                    Registration (Oldest)
-                </option>
+            <select name="sort">
 
                 <option value="expiry_soonest" {% if sort=="expiry_soonest" %}selected{% endif %}>
-                    Expiry (Soonest)
+                    Expiry — Soonest
                 </option>
 
                 <option value="expiry_latest" {% if sort=="expiry_latest" %}selected{% endif %}>
-                    Expiry (Latest)
+                    Expiry — Latest
+                </option>
+
+                <option value="name_az" {% if sort=="name_az" %}selected{% endif %}>
+                    Name — A to Z
+                </option>
+
+                <option value="name_za" {% if sort=="name_za" %}selected{% endif %}>
+                    Name — Z to A
+                </option>
+
+                <option value="registration_newest" {% if sort=="registration_newest" %}selected{% endif %}>
+                    Registration — Newest
+                </option>
+
+                <option value="registration_oldest" {% if sort=="registration_oldest" %}selected{% endif %}>
+                    Registration — Oldest
                 </option>
 
             </select>
@@ -174,61 +243,62 @@ Members
         </div>
 
 
-        <!-- APPLY -->
-        <button type="submit" style="
-            height:45px;
-            padding:0 20px;
-        ">
-            Apply
-        </button>
+        <!-- ACTIONS -->
 
+        <div class="filter-actions">
 
-        <!-- CLEAR -->
-        {% if search or status != "all" or sort != "expiry_soonest" %}
+            <button type="submit">
+                Apply
+            </button>
 
-        <a href="/members" class="button" style="
-            height:45px;
-            background:#f3f4f6;
-            color:#374151;
-        ">
-            Clear
-        </a>
+            {% if search or status != "all" or sort != "expiry_soonest" %}
 
-        {% endif %}
+            <a href="/members" class="button clear-button">
+                Clear
+            </a>
+
+            {% endif %}
+
+        </div>
 
     </form>
 
 </div>
 
-<!-- MEMBERS TABLE -->
-<div class="card">
 
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        margin-bottom:18px;
-    ">
+<!-- =========================================================
+     MEMBERS TABLE
+     ========================================================= -->
+
+<div class="card members-table-card">
+
+    <!-- TABLE HEADER -->
+
+    <div class="members-table-header">
 
         <div>
 
-            <h2 style="
-                margin:0;
-                font-size:17px;
-            ">
+            <h2>
                 All Members
             </h2>
 
-            <p style="
-                margin:5px 0 0;
-                color:#6b7280;
-                font-size:13px;
-            ">
+            <p>
+
                 {% if members %}
-                {{ members|length }} member{% if members|length != 1 %}s{% endif %} found
-                {% else %}
-                No members found
+
+                {{ members|length }}
+                member{% if members|length != 1 %}s{% endif %}
+
+                {% if search %}
+                matching "{{ search }}"
                 {% endif %}
+
+                {% else %}
+
+                No members found
+
+                {% endif %}
+
             </p>
 
         </div>
@@ -238,154 +308,179 @@ Members
 
     {% if members %}
 
-    <table>
+    <!-- RESPONSIVE TABLE -->
 
-        <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Type</th>
-            <th>Due Date</th>
-            <th>Status</th>
-            <th>Action</th>
-        </tr>
+    <div class="members-table-wrapper">
 
-        {% for member in members %}
+        <table>
 
-        <tr>
+            <thead>
 
-            <td>
-                <strong>
-                    {{ member.full_name }}
-                </strong>
-            </td>
+                <tr>
 
-            <td>
-                {{ member.phone }}
-            </td>
+                    <th>Name</th>
 
-            <td>
-                <span style="
-                    display:inline-flex;
-                    padding:5px 9px;
-                    border-radius:6px;
-                    background:#f3f4f6;
-                    color:#374151;
-                    font-size:12px;
-                    font-weight:600;
-                ">
-                    {{ member.membership_type }}
-                </span>
-            </td>
+                    <th>Phone</th>
 
-            <td>
-                {{ member.payment_due_date }}
-            </td>
+                    <th>Type</th>
 
-            <td>
+                    <th>Registration Date</th>
 
-                {% if member.status == 'Active' %}
+                    <th>Due Date</th>
 
-                <span style="
-                    display:inline-flex;
-                    align-items:center;
-                    gap:5px;
-                    padding:5px 10px;
-                    border-radius:20px;
-                    background:#ecfdf5;color:#047857;
-                    font-size:12px;
-                    font-weight:600;
-                ">
-                    <span>●</span>
-                    Active
-                </span>
+                    <th>Status</th>
 
-                {% else %}
+                    <th style="text-align:right;">
+                        Action
+                    </th>
 
-                <span style="
-                    display:inline-flex;
-                    align-items:center;
-                    gap:5px;
-                    padding:5px 10px;
-                    border-radius:20px;
-                    background:#fef2f2;
-                    color:#b91c1c;
-                    font-size:12px;
-                    font-weight:600;
-                ">
-                    <span>●</span>
-                    {{ member.status }}
-                </span>
+                </tr>
 
-                {% endif %}
+            </thead>
 
-            </td>
 
-            <td>
+            <tbody>
 
-                <a href="/members/{{ member.id }}" class="button" style="
-                        padding:8px 13px;
-                        font-size:12px;
-                    ">
-                    View
-                </a>
+                {% for member in members %}
 
-            </td>
+                <tr>
 
-        </tr>
+                    <!-- NAME -->
 
-        {% endfor %}
+                    <td>
 
-    </table>
+                        <strong>
+                            {{ member.full_name }}
+                        </strong>
+
+                    </td>
+
+
+                    <!-- PHONE -->
+
+                    <td>
+                        {{ member.phone }}
+                    </td>
+
+
+                    <!-- MEMBERSHIP TYPE -->
+
+                    <td>
+
+                        <span class="membership-badge">
+                            {{ member.membership_type }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- REGISTRATION DATE -->
+
+                    <td>
+                        {{ member.registration_date }}
+                    </td>
+
+
+                    <!-- DUE DATE -->
+
+                    <td><strong>
+                            {{ member.payment_due_date }}
+                        </strong>
+
+                    </td>
+
+
+                    <!-- STATUS -->
+
+                    <td>
+
+                        {% if member.status == "Active" %}
+
+                        <span class="status-badge active-status">
+                            <span>●</span>
+                            Active
+                        </span>
+
+                        {% else %}
+
+                        <span class="status-badge expired-status">
+                            <span>●</span>
+                            {{ member.status }}
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- ACTION -->
+
+                    <td style="text-align:right;">
+
+                        <a href="/members/{{ member.id }}" class="button view-button">
+                            View
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
 
     {% else %}
 
-    <!-- EMPTY STATE -->
-    <div style="
-        text-align:center;
-        padding:55px 20px;
-    ">
+    <!-- =====================================================
+         EMPTY STATE
+         ===================================================== -->
 
-        <div style="
-            width:60px;
-            height:60px;
-            margin:0 auto 15px;
-            border-radius:50%;
-            background:#eff6ff;
-            color:#2563eb;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:26px;
-        ">
+    <div class="empty-state">
+
+        <div class="empty-icon">
             ♙
         </div>
 
-        <h3 style="
-            margin:0;
-            font-size:17px;
-        ">
+        <h3>
             No members found
         </h3>
 
-        <p style="
-            margin:7px 0 20px;
-            color:#6b7280;
-            font-size:14px;
-        ">
+        <p>
+
             {% if search %}
+
             No members match "{{ search }}".
+
+            {% elif status == "active" %}
+
+            There are no active members.
+
+            {% elif status == "expired" %}
+
+            There are no expired members.
+
+            {% elif status == "due_soon" %}
+
+            No members are due within the next 7 days.
+
             {% else %}
+
             You haven't registered any members yet.
+
             {% endif %}
+
         </p>
 
-        {% if search %}
 
-        <a href="/members" class="button" style="
-                background:#f3f4f6;
-                color:#374151;
-            ">
-            Clear Search
+        {% if search or status != "all" or sort != "expiry_soonest" %}
+
+        <a href="/members" class="button secondary-button">
+            Clear Filters
         </a>
 
         {% else %}
@@ -401,5 +496,384 @@ Members
     {% endif %}
 
 </div>
+
+
+<!-- =========================================================
+     PAGE STYLES
+     ========================================================= -->
+
+<style>
+    /* ---------------------------------------------------------
+       SUMMARY
+       --------------------------------------------------------- */
+
+    .member-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+
+    .summary-card {
+        margin-bottom: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+
+    .summary-label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+
+    .summary-number {
+        margin-top: 7px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+
+    .summary-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+
+    .total-icon {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+
+    .active-icon {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+
+    .expired-icon {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+
+    .due-icon {
+        background: #fff7ed;
+        color: #d97706;
+    }
+
+
+    /* ---------------------------------------------------------
+       FILTERS
+       --------------------------------------------------------- */
+
+    .filter-form {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 0;
+    }
+
+
+    .filter-field {
+        min-width: 170px;
+    }
+
+
+    .search-field {
+        flex: 1;
+        min-width: 240px;
+    }
+
+
+    .filter-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+
+    .filter-field input,
+    .filter-field select {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+
+    .filter-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+
+    .clear-button,
+    .secondary-button {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+
+    /* ---------------------------------------------------------
+       TABLE
+       --------------------------------------------------------- */
+
+    .members-table-card {
+        overflow: hidden;
+    }
+
+
+    .members-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+
+    .members-table-header h2 {
+        margin: 0;
+        font-size: 17px;
+    }
+
+
+    .members-table-header p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+
+    .members-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+
+    .members-table-wrapper table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+    }
+
+
+    .membership-badge {
+        display: inline-flex;
+        padding: 5px 9px;
+        border-radius: 6px;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+
+    .active-status {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+
+    .expired-status {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+
+    .view-button {
+        padding: 8px 13px;
+        font-size: 12px;
+    }
+
+
+    /* ---------------------------------------------------------
+       EMPTY STATE
+       --------------------------------------------------------- */
+
+    .empty-state {
+        text-align: center;
+        padding: 55px 20px;
+    }
+
+
+    .empty-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 15px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+    }
+
+
+    .empty-state h3 {
+        margin: 0;
+        font-size: 17px;
+    }
+
+
+    .empty-state p {
+        margin: 7px 0 20px;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+
+    /* ---------------------------------------------------------
+       TABLET
+       --------------------------------------------------------- */
+
+    @media (max-width:1050px) {
+
+        .member-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+    }
+
+
+    /* ---------------------------------------------------------
+       MOBILE
+       --------------------------------------------------------- */
+
+    @media (max-width:800px) {
+
+        .members-page-header {
+            align-items: stretch !important;
+        }
+
+
+        .members-page-header>div {
+            width: 100%;
+        }
+
+
+        .member-actions {
+            flex-direction: column;
+        }
+
+
+        .member-actions .button {
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+
+        .member-summary-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+
+        .summary-card {
+            padding: 16px;
+        }
+
+
+        .summary-number {
+            font-size: 23px;
+        }
+
+
+        .summary-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+
+
+        .filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+
+        .filter-field,
+        .search-field {
+            width: 100%;
+            min-width: 0;
+        }
+
+
+        .filter-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+
+        .filter-actions button,
+        .filter-actions .button {
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+
+        .members-table-card {
+            padding: 16px;
+        }
+
+
+        .members-table-wrapper table {
+            min-width: 900px;
+        }
+
+    }
+
+
+    /* ---------------------------------------------------------
+       SMALL PHONES
+       --------------------------------------------------------- */
+
+    @media (max-width:480px) {
+
+        .member-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+
+        .summary-card {
+            display: flex;
+        }
+
+
+        .members-table-header {
+            align-items: flex-start;
+        }
+
+    }
+</style>
 
 {% endblock %}
