@@ -22,7 +22,7 @@ for table in ["gyms", "members", "payments"]:
             f"SELECT COUNT(*) FROM {table}"
         ).fetchone()[0]
         print(f"{table}: {count}")
-    except sqlite3.OperationalError as e:
+    except sqlite3.OperationalError:
         print(f"{table}: TABLE DOES NOT EXIST")
 
 print("\n=== ALEMBIC VERSION ===")

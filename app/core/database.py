@@ -8,8 +8,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import DATABASE_URL
 
-
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith(
+    "sqlite") else {}
 engine_options = {"connect_args": connect_args}
 # The shared in-memory URL is used by the isolated test suite. File-backed
 # SQLite and non-SQLite deployments retain normal SQLAlchemy pooling behavior.

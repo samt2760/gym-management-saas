@@ -1,13 +1,13 @@
 """Shared persistence primitives."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime
 
 
 def utc_now() -> datetime:
     """Return an aware UTC timestamp for application-managed audit fields."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TimestampMixin:

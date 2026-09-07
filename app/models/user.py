@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 import bcrypt
+from pwdlib import PasswordHash
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 from app.models.mixins import TimestampMixin
+
+password_hasher = PasswordHash.recommended()
 
 
 class Role(str, Enum):
@@ -37,12 +39,23 @@ class Permission(str, Enum):
     ATTENDANCE_MANAGE = "attendance.manage"
 
 
-ROLE_PERMISSIONS: dict[str, set[str]] = {
-    Role.OWNER.value: {
-        permission.value for permission in Permission
-    },
+ROLE_PERMISSIONS = {
+    Role.OWNER.value: {permission.value for permission in Permission},
     Role.ADMIN.value: {
-        permission.value for permission in Permission
+        Permission.MEMBERS_VIEW.value,
+        Permission.MEMBERS_CREATE.value,
+        Permission.MEMBERS_EDIT.value,
+        Permission.MEMBERS_DELETE.value,
+        Permission.PAYMENTS_VIEW.value,
+        Permission.PAYMENTS_CREATE.value,
+        Permission.PAYMENTS_REFUND.value,
+        Permission.REPORTS_VIEW.value,
+        Permission.SETTINGS_VIEW.value,
+        Permission.SETTINGS_EDIT.value,
+        Permission.STAFF_VIEW.value,
+        Permission.STAFF_MANAGE.value,
+        Permission.ATTENDANCE_VIEW.value,
+        Permission.ATTENDANCE_MANAGE.value,
     },
     Role.MANAGER.value: {
         Permission.MEMBERS_VIEW.value,
@@ -51,8 +64,6 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         Permission.PAYMENTS_VIEW.value,
         Permission.PAYMENTS_CREATE.value,
         Permission.REPORTS_VIEW.value,
-        Permission.SETTINGS_VIEW.value,
-        Permission.STAFF_VIEW.value,
         Permission.ATTENDANCE_VIEW.value,
         Permission.ATTENDANCE_MANAGE.value,
     },
@@ -64,83 +75,214 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         Permission.PAYMENTS_CREATE.value,
         Permission.ATTENDANCE_VIEW.value,
         Permission.ATTENDANCE_MANAGE.value,
-        Permission.STAFF_VIEW.value,
     },
     Role.TRAINER.value: {
         Permission.MEMBERS_VIEW.value,
-        Permission.REPORTS_VIEW.value,
         Permission.ATTENDANCE_VIEW.value,
         Permission.ATTENDANCE_MANAGE.value,
     },
 }
 
 
+def hash_password(password: str) -> str:
+    return password_hasher.hash(password)
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    if stored_hash.startswith("$argon2"):
+        return password_hasher.verify(password, stored_hash)
+
+    if stored_hash.startswith("$2b$"):
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            stored_hash.encode("utf-8"),
+        )
+
+    return False
+
+
 class User(TimestampMixin, Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    gym_id = Column(Integer, ForeignKey("gyms.id", ondelete="RESTRICT"), nullable=False, index=True)
-    username = Column(String(64), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    status = Column(String(20), nullable=False, default="active")
-    role = Column(String(32), nullable=False, default=Role.OWNER.value, index=True)
-    is_superuser = Column(Boolean, nullable=False, default=False)
-    last_login = Column(DateTime(timezone=True), nullable=True)
 
-    gym = relationship("Gym", back_populates="users")
+    gym_id = Column(
+        Integer,
+        ForeignKey("gyms.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    username = Column(
+        String(64),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    email = Column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    password_hash = Column(
+        String(255),
+        nullable=False,
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="active",
+    )
+
+    role = Column(
+        String(32),
+        nullable=False,
+        default=Role.OWNER.value,
+        index=True,
+    )
+
+    is_superuser = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    last_login = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    gym = relationship(
+        "Gym",
+        back_populates="users",
+    )
     sessions = relationship(
-        "UserSession", back_populates="user", cascade="all, delete-orphan")
-    reset_tokens = relationship(
-        "PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+        "UserSession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
-    @property
-    def permissions(self) -> set[str]:
+    password_reset_tokens = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    def has_permission(self, permission: Permission | str) -> bool:
         if self.is_superuser:
-            return {permission.value for permission in Permission}
-        return set(ROLE_PERMISSIONS.get(self.role or Role.OWNER.value, set()))
+            return True
 
-    def has_permission(self, permission: str) -> bool:
-        return permission in self.permissions or self.is_superuser
+        permission_value = (
+            permission.value
+            if isinstance(permission, Permission)
+            else permission
+        )
+
+        role = self.role.upper()
+
+        return permission_value in ROLE_PERMISSIONS.get(role, set())
+
+    def is_active_user(self) -> bool:
+        return self.status.lower() == "active"
 
 
 class UserSession(TimestampMixin, Base):
     __tablename__ = "user_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey(
-        "users.id", ondelete="CASCADE"), nullable=False, index=True)
-    token_hash = Column(String(128), unique=True, index=True, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    revoked_at = Column(DateTime(timezone=True), nullable=True)
-    user_agent = Column(String(255), nullable=True)
-    ip_address = Column(String(64), nullable=True)
 
-    user = relationship("User", back_populates="sessions")
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    token_hash = Column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
+
+    revoked_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    user_agent = Column(
+        String(500),
+        nullable=True,
+    )
+
+    ip_address = Column(
+        String(45),
+        nullable=True,
+    )
+
+    user = relationship(
+        "User",
+        back_populates="sessions",
+    )
+
+    def is_valid(self) -> bool:
+        now = datetime.now(UTC)
+
+        if self.revoked_at is not None:
+            return False
+
+        return self.expires_at > now
 
 
 class PasswordResetToken(TimestampMixin, Base):
     __tablename__ = "password_reset_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey(
-        "users.id", ondelete="CASCADE"), nullable=False, index=True)
-    token_hash = Column(String(128), unique=True, index=True, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    used_at = Column(DateTime(timezone=True), nullable=True)
 
-    user = relationship("User", back_populates="reset_tokens")
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
+    token_hash = Column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
 
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
 
+    used_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
-def verify_password(password: str, password_hash: str) -> bool:
-    if password_hash.startswith("$2b$"):
-        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
-    return hashlib.sha256(password.encode("utf-8")).hexdigest() == password_hash
+    user = relationship(
+        "User",
+        back_populates="password_reset_tokens",
+    )
 
+    def is_valid(self) -> bool:
+        now = datetime.now(UTC)
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+        if self.used_at is not None:
+            return False
+
+        return self.expires_at > now

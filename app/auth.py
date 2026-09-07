@@ -3,11 +3,11 @@ from __future__ import annotations
 import hashlib
 import secrets
 from collections import defaultdict, deque
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import (
@@ -18,13 +18,11 @@ from app.core.config import (
     SESSION_TTL_SECONDS,
 )
 from app.core.database import SessionLocal
-from app.models import Gym, Member, Payment
+from app.models import Gym
 from app.models.user import (
     PasswordResetToken,
-    Permission,
     User,
     UserSession,
-    hash_password,
     verify_password,
 )
 from app.web import get_db
@@ -35,28 +33,28 @@ _login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
 
 
 def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _to_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _hash_secret(value: str) -> str:
-    return hashlib.sha256(f"{SECRET_KEY}:{value}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{SECRET_KEY}:{value}".encode()).hexdigest()
 
 
-def _rate_limit_key(request: Request, username: str) -> str:
+def _rate_limit_key(request: Request, email: str) -> str:
     client_ip = request.client.host if request.client else "unknown"
-    return f"{client_ip}:{username.strip().lower()}"
+    return f"{client_ip}:{email.strip().lower()}"
 
 
-def is_login_allowed(request: Request, username: str) -> bool:
-    key = _rate_limit_key(request, username)
+def is_login_allowed(request: Request, email: str) -> bool:
+    key = _rate_limit_key(request, email)
     attempts = _login_attempts[key]
     cutoff = _now_utc() - RATE_LIMIT_WINDOW
     while attempts and attempts[0] < cutoff:
@@ -103,27 +101,33 @@ def require_auth(request: Request, db: Session = Depends(get_db)) -> User:
 
 def get_current_gym(db: Session, user: User) -> Gym:
     if user.gym_id is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
     if gym is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     return gym
 
 
 def get_tenant_object(db: Session, user: User, model, resource_id: int, id_field: str = "id"):
     if user.gym_id is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    filter_clause = [getattr(model, id_field) == resource_id, getattr(model, "gym_id") == user.gym_id]
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    filter_clause = [getattr(model, id_field) ==
+                     resource_id, model.gym_id == user.gym_id]
     obj = db.query(model).filter(*filter_clause).first()
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     return obj
 
 
 def require_permission(permission: str):
     def dependency(request: Request, user: User = Depends(require_auth)) -> User:
         if not user.has_permission(permission):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
         return user
 
     return dependency
@@ -132,20 +136,34 @@ def require_permission(permission: str):
 def require_any_permission(*permissions: str):
     def dependency(request: Request, user: User = Depends(require_auth)) -> User:
         if not any(user.has_permission(permission) for permission in permissions):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
         return user
 
     return dependency
 
 
-def authenticate_user(request: Request, db: Session, username: str, password: str) -> User | None:
-    user = db.query(User).filter(User.username == username.strip()).first()
+def authenticate_user(
+    request: Request,
+    db: Session,
+    email: str,
+    password: str,
+) -> User | None:
+    user = (
+        db.query(User)
+        .filter(User.email == email.strip().lower())
+        .first()
+    )
+
     if user is None or user.status != "active":
         return None
+
     if not verify_password(password, user.password_hash):
         return None
+
     user.last_login = _now_utc()
     db.commit()
+
     return user
 
 

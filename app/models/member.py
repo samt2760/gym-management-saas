@@ -1,4 +1,13 @@
-from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base

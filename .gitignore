@@ -5,6 +5,8 @@ venv/
 # Python cache
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
 
 # Environment variables / secrets
 .env
@@ -24,3 +26,21 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Database backups
+*_backup.sql
+*.dump
+
+# Local databases
+*.db
+*.db.*
+*.bak
+
+# PostgreSQL backups
+*_backup.sql
+*.dump
+
+# Temporary diagnostic scripts
+check_alembic.py
+check_member.py
+cleanup_duplicate_payment_fk.py

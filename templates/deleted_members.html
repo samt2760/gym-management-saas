@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+{% block title %}Deleted Members{% endblock %}
+{% block topbar_title %}
+Deleted Members
+{% endblock %}
+{% block content %}
+<div class="deleted-page">
+    <!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+    <div class="deleted-page-header">
+
+        <div>
+            <h1>Deleted Members</h1>
+
+            <p>
+                View and restore members removed from your active member list.
+            </p>
+        </div>
+
+        <a href="/members" class="button button-secondary">
+            ← Back to Members
+        </a>
+
+    </div>
+
+
+    <!-- =========================================================
+     INFORMATION NOTICE
+     ========================================================= -->
+
+    <div class="deleted-info">
+
+        <div class="deleted-info-icon">
+            !
+        </div>
+
+        <div>
+
+            <div class="deleted-info-title">
+                Deleted members are safely preserved
+            </div>
+
+            <div class="deleted-info-text">
+                Deleting a member does not erase their payment history.
+                Restore a member to return them to the normal Members list.
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+     DELETED MEMBERS CARD
+     ========================================================= -->
+
+    <div class="card deleted-members-card">
+
+        <div class="deleted-card-header">
+
+            <div>
+
+                <h2>
+                    Deleted Members
+                </h2>
+
+                <p>
+                    {% if deleted_members %}
+
+                    {{ deleted_members|length }}
+                    deleted member{% if deleted_members|length != 1 %}s{% endif %}
+
+                    {% else %}
+
+                    No deleted members
+
+                    {% endif %}
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if deleted_members %}
+
+        <!-- =====================================================
+         TABLE
+         ===================================================== -->
+
+        <div class="deleted-table-wrapper">
+
+            <table class="deleted-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Name
+                        </th>
+
+                        <th>
+                            Phone
+                        </th>
+
+                        <th>
+                            Registration Date
+                        </th>
+
+                        <th>
+                            Expiry Date
+                        </th>
+
+                        <th>
+                            Deleted
+                        </th>
+
+                        <th class="deleted-action-column">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for member in deleted_members %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ member.full_name }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ member.phone }}
+                        </td>
+
+                        <td>
+                            {{ member.registration_date }}
+                        </td>
+
+                        <td>
+                            {{ member.payment_due_date }}
+                        </td>
+
+                        <td>
+
+                            {% if member.deleted_at %}
+
+                            {{ member.deleted_at.strftime("%d %b %Y, %H:%M") }}
+
+                            {% else %}
+
+                            —
+
+                            {% endif %}
+
+                        </td>
+
+                        <td class="deleted-action-column">
+
+                            <form method="post" action="/members/{{ member.id }}/restore" class="restore-form">
+
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+                                <button type="submit" class="button restore-button">
+                                    Restore
+                                </button>
+
+                            </form>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+        <!-- =====================================================
+         EMPTY STATE
+         ===================================================== -->
+
+        <div class="deleted-empty-state">
+
+            <div class="deleted-empty-icon">
+                ✓
+            </div>
+
+            <h3>
+                No deleted members
+            </h3>
+
+            <p>
+                Deleted members will appear here and can be restored.
+            </p>
+
+            <a href="/members" class="button">
+                Back to Members
+            </a>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+<!-- =============================================================
+     DELETED MEMBERS STYLES
+     ============================================================= -->
+<style>
+    /* =========================================================
+       PAGE HEADER
+       ========================================================= */
+
+    .deleted-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        gap: 20px;
+
+        margin-bottom: 28px;
+
+        flex-wrap: wrap;
+    }
+
+    .deleted-page-header h1 {
+        margin: 0;
+
+        font-size: 28px;
+        line-height: 1.2;
+
+        letter-spacing: -0.6px;
+
+        color: #111827;
+    }
+
+    .deleted-page-header p {
+        margin: 6px 0 0;
+
+        color: #6b7280;
+
+        font-size: 14px;
+    }
+
+
+    /* =========================================================
+       INFORMATION NOTICE
+       ========================================================= */
+
+    .deleted-info {
+        display: flex;
+        align-items: flex-start;
+
+        gap: 12px;
+
+        margin-bottom: 22px;
+        padding: 16px;
+
+        background: #fffbeb;
+
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+    }
+
+    .deleted-info-icon {
+        width: 38px;
+        height: 38px;
+
+        min-width: 38px;
+
+        border-radius: 9px;
+
+        background: #fef3c7;
+        color: #b45309;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        font-weight: 700;
+    }
+
+    .deleted-info-title {
+        margin-bottom: 4px;
+
+        color: #92400e;
+
+        font-weight: 700;
+    }
+
+    .deleted-info-text {
+        color: #92400e;
+
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+
+    /* =========================================================
+       DELETED MEMBERS CARD
+       ========================================================= */
+
+    .deleted-members-card {
+        overflow: hidden;
+    }
+
+    .deleted-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        gap: 15px;
+
+        margin-bottom: 20px;
+    }
+
+    .deleted-card-header h2 {
+        margin: 0;
+
+        font-size: 18px;
+
+        color: #111827;
+    }
+
+    .deleted-card-header p {
+        margin: 5px 0 0;
+
+        color: #6b7280;
+
+        font-size: 13px;
+    }
+
+
+    /* =========================================================
+       TABLE
+       ========================================================= */
+
+    .deleted-table-wrapper {
+        width: 100%;
+
+        overflow-x: auto;
+
+        border-radius: 8px;
+    }
+
+    .deleted-table {
+        width: 100%;
+
+        min-width: 850px;
+
+        border-collapse: collapse;
+    }
+
+    .deleted-table th {
+        padding: 12px 14px;
+
+        background: #f9fafb;
+
+        border-bottom: 1px solid #e5e7eb;
+
+        color: #6b7280;
+
+        font-size: 12px;
+        font-weight: 700;
+
+        text-align: left;
+
+        white-space: nowrap;
+    }
+
+    .deleted-table td {
+        padding: 14px;
+
+        border-bottom: 1px solid #e5e7eb;
+
+        color: #374151;
+
+        vertical-align: middle;
+
+        white-space: nowrap;
+    }
+
+    .deleted-table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .deleted-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* =========================================================
+       ACTION COLUMN
+       ========================================================= */
+
+    .deleted-action-column {
+        width: 1%;
+
+        text-align: right !important;
+
+        white-space: nowrap !important;
+    }
+
+    .restore-form {
+        margin: 0;
+    }
+
+    .restore-button {
+        padding: 8px 13px;
+
+        background: #16a34a;
+
+        font-size: 12px;
+    }
+
+    .restore-button:hover {
+        background: #15803d;
+    }
+
+
+    /* =========================================================
+       EMPTY STATE
+       ========================================================= */
+
+    .deleted-empty-state {
+        padding: 55px 20px;
+
+        text-align: center;
+    }
+
+    .deleted-empty-icon {
+        width: 60px;
+        height: 60px;
+
+        margin: 0 auto 15px;
+
+        border-radius: 50%;
+
+        background: #f3f4f6;
+
+        color: #6b7280;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        font-size: 25px;
+    }
+
+    .deleted-empty-state h3 {
+        margin: 0;
+
+        color: #111827;
+
+        font-size: 17px;
+    }
+
+    .deleted-empty-state p {
+        margin: 7px 0 20px;
+
+        color: #6b7280;
+
+        font-size: 14px;
+    }
+
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 650px) {
+
+        .deleted-page-header {
+            align-items: flex-start;
+        }
+
+        .deleted-page-header .button {
+            width: 100%;
+        }
+
+        .deleted-info {
+            padding: 14px;
+        }
+
+        .deleted-members-card {
+            padding: 16px;
+        }
+
+        .deleted-empty-state {
+            padding: 40px 15px;
+        }
+
+    }
+</style>
+{% endblock %}

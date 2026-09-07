@@ -1,26 +1,150 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Login{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-{% block topbar_title %}Login{% endblock %}
+    <title>Login - Gym Management System</title>
 
-{% block content %}
-<div style="max-width: 420px; margin: 60px auto;">
-    <div class="card">
-        <h1 style="margin-top: 0;">Secure Login</h1>
-        <p style="color: #6b7280; margin-bottom: 18px;">Enter your gym account credentials to continue.</p>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-        <form method="post" action="/login">
-            <input type="hidden" name="next" value="{{ next }}">
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
 
-            <label for="username">Username</label>
-            <input id="username" name="username" type="text" required>
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+        }
 
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" required>
+        .login-card {
+            background: white;
+            padding: 36px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
 
-            <button type="submit" style="width: 100%; margin-top: 8px;">Log in</button>
-        </form>
+        .brand {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .brand h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .brand p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+        }
+
+        .error {
+            margin-bottom: 18px;
+            padding: 11px 13px;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: #991b1b;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-container">
+
+        <div class="login-card">
+
+            <div class="brand">
+                <h1>Gym Management</h1>
+                <p>Sign in to continue</p>
+            </div>
+
+            {% if error %}
+            <div class="error">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="/login">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required
+                        autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required
+                        autocomplete="current-password">
+                </div>
+
+                <button type="submit">
+                    Sign In
+                </button>
+
+            </form>
+
+        </div>
+
     </div>
-</div>
-{% endblock %}
+
+</body>
+
+</html>

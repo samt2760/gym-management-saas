@@ -96,7 +96,7 @@ Gym Settings
 
 
         <form method="post" action="/gym-settings">
-
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
 
             <!-- GYM NAME -->
 

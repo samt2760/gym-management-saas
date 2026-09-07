@@ -1,31 +1,61 @@
 from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
     Column,
-    Integer,
-    String,
     Date,
     DateTime,
     ForeignKey,
-    CheckConstraint,
     Index,
+    Integer,
+    String,
 )
 from sqlalchemy.orm import declarative_base
 
-
 Base = declarative_base()
 
+
+# ============================================================
+# GYM
+# ============================================================
 
 class Gym(Base):
     __tablename__ = "gyms"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, default="My Gym")
-    currency = Column(String(3), nullable=False, default="GHS")
 
-    registration_fee = Column(Integer, nullable=False, default=0)
-    monthly_fee = Column(Integer, nullable=False, default=0)
+    name = Column(
+        String,
+        nullable=False,
+        default="My Gym",
+    )
 
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    currency = Column(
+        String(3),
+        nullable=False,
+        default="GHS",
+    )
+
+    registration_fee = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    monthly_fee = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -39,40 +69,156 @@ class Gym(Base):
     )
 
 
-class Member(Base):
-    __tablename__ = "members"
+# ============================================================
+# USER
+# ============================================================
 
-    id = Column(Integer, primary_key=True, index=True)
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
 
     gym_id = Column(
         Integer,
-        ForeignKey("gyms.id", ondelete="RESTRICT"),
+        ForeignKey(
+            "gyms.id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
     )
 
-    full_name = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
-    email = Column(String, nullable=True)
-    date_of_birth = Column(Date, nullable=True)
+    email = Column(
+        String,
+        nullable=False,
+    )
 
-    registration_date = Column(Date, nullable=False)
+    password_hash = Column(
+        String,
+        nullable=False,
+    )
+
+    role = Column(
+        String,
+        nullable=False,
+        default="owner",
+    )
+
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('owner', 'admin', 'staff')",
+            name="ck_users_valid_role",
+        ),
+        Index(
+            "ix_users_gym_id",
+            "gym_id",
+        ),
+        Index(
+            "ix_users_gym_email",
+            "gym_id",
+            "email",
+            unique=True,
+        ),
+    )
+
+
+# ============================================================
+# MEMBER
+# ============================================================
+
+class Member(Base):
+    __tablename__ = "members"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    gym_id = Column(
+        Integer,
+        ForeignKey(
+            "gyms.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+
+    full_name = Column(
+        String,
+        nullable=False,
+    )
+
+    phone = Column(
+        String,
+        nullable=False,
+    )
+
+    email = Column(
+        String,
+        nullable=True,
+    )
+
+    date_of_birth = Column(
+        Date,
+        nullable=True,
+    )
+
+    registration_date = Column(
+        Date,
+        nullable=False,
+    )
+
     membership_type = Column(
         String,
         nullable=False,
         default="Monthly",
     )
 
-    payment_due_date = Column(Date, nullable=False)
+    payment_due_date = Column(
+        Date,
+        nullable=False,
+    )
+
     status = Column(
         String,
         nullable=False,
         default="Active",
     )
 
-    deleted_at = Column(DateTime, nullable=True)
+    deleted_at = Column(
+        DateTime,
+        nullable=True,
+    )
 
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -83,11 +229,10 @@ class Member(Base):
             "status IN ('Active', 'Expired')",
             name="ck_members_valid_status",
         ),
-        Index(
-            "ix_members_gym_due_date",
-            "gym_id",
-            "payment_due_date",
-        ),
+        Index("ix_members_gym_due_date",
+              "gym_id",
+              "payment_due_date",
+              ),
         Index(
             "ix_members_gym_full_name",
             "gym_id",
@@ -101,28 +246,57 @@ class Member(Base):
     )
 
 
+# ============================================================
+# PAYMENT
+# ============================================================
+
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(Integer, primary_key=True, index=True)
-
-    gym_id = Column(
+    id = Column(
         Integer,
-        ForeignKey("gyms.id", ondelete="RESTRICT"),
-        nullable=False,
+        primary_key=True,
+        index=True,
     )
 
     member_id = Column(
         Integer,
-        ForeignKey("members.id", ondelete="RESTRICT"),
+        ForeignKey(
+            "members.id",
+            ondelete="RESTRICT",
+            name="fk_payments_member_id_members",
+        ),
         nullable=True,
     )
 
-    member_name = Column(String, nullable=False)
-    amount = Column(Integer, nullable=False)
-    currency = Column(String(3), nullable=False)
+    gym_id = Column(
+        Integer,
+        ForeignKey(
+            "gyms.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
 
-    payment_date = Column(Date, nullable=False)
+    member_name = Column(
+        String,
+        nullable=False,
+    )
+
+    amount = Column(
+        Integer,
+        nullable=False,
+    )
+
+    currency = Column(
+        String(3),
+        nullable=False,
+    )
+
+    payment_date = Column(
+        Date,
+        nullable=False,
+    )
 
     membership_type = Column(
         String,
@@ -136,8 +310,15 @@ class Payment(Base):
         default="Renewal",
     )
 
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+    )
 
     __table_args__ = (
         CheckConstraint(

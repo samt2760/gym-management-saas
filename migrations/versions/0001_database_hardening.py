@@ -5,9 +5,8 @@ Revises:
 Create Date: 2026-08-30
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0001_database_hardening"
 down_revision = None
@@ -535,7 +534,7 @@ def _upgrade_legacy_schema() -> None:
                 """
             ),
             {
-                "member_id": result.lastrowid,
+                "member_id": result.inserted_primary_key[0],
                 "payment_id": payment["id"],
             },
         )

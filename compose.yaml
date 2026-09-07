@@ -1,0 +1,27 @@
+services:
+  web:
+    build:
+      context: .
+    image: gym-management:dev
+    container_name: gym-management-dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./gym.db:/app/gym.db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17
+    container_name: gym-management-db
+    environment:
+      POSTGRES_DB: gym_management
+      POSTGRES_USER: gym_user
+      POSTGRES_PASSWORD: gym_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

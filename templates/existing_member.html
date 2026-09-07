@@ -8,161 +8,132 @@ Add Existing Member
 
 {% block content %}
 
-<div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:20px;
-    margin-bottom:28px;
-    flex-wrap:wrap;
-">
+<div class="page-header">
 
     <div>
-
-        <a href="/members" style="
-            color:#6b7280;
-            text-decoration:none;
-            font-size:13px;
-            font-weight:600;
-        ">
+        <a href="/members" class="back-link">
             ← Back to Members
         </a>
 
-        <h1 style="
-            margin:10px 0 0;
-            font-size:28px;
-            letter-spacing:-.6px;
-        ">
-            Add Existing Member
-        </h1>
+        <h1>Add Existing Member</h1>
 
-        <p style="
-            margin:6px 0 0;
-            color:#6b7280;
-            font-size:14px;
-        ">
+        <p class="page-description">
             Add a member who was registered before you started using this system.
         </p>
-
     </div>
 
 </div>
 
 
-<div class="card" style="max-width:700px;">
+<div class="card existing-member-card">
 
-    <h2 style="
-        margin:0;
-        font-size:18px;
-    ">
-        Member Information
-    </h2>
+    <div class="card-header">
 
-    <p style="
-        margin:6px 0 24px;
-        color:#6b7280;
-        font-size:13px;
-    ">
-        Enter the member's existing membership information.
-    </p>
+        <h2>Member Information</h2>
+
+        <p>
+            Enter the member's existing membership information.
+        </p>
+
+    </div>
 
 
-    <div style="
-        background:#eff6ff;
-        border:1px solid #bfdbfe;
-        color:#1e40af;
-        border-radius:9px;
-        padding:13px 15px;
-        margin-bottom:24px;
-        font-size:13px;
-        line-height:1.5;
-    ">
+    <div class="info-notice">
+
         <strong>Important:</strong>
+
         No registration payment will be recorded.
         This member is being added because they already existed
         before the system was introduced.
+
     </div>
 
 
     <form method="post" action="/members/existing">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <div class="form-group">
 
-        <label>
-            Full Name
-        </label>
+            <label for="full_name">
+                Full Name
+            </label>
 
-        <input type="text" name="full_name" placeholder="Enter full name" required>
+            <input type="text" id="full_name" name="full_name" placeholder="Enter full name" required>
 
-
-        <label>
-            Phone
-        </label>
-
-        <input type="text" name="phone" placeholder="Enter phone number" required>
+        </div>
 
 
-        <label>
-            Email
-            <span style="
-                color:#9ca3af;
-                font-weight:400;
-            ">
-                (optional)
-            </span>
-        </label>
+        <div class="form-group">
 
-        <input type="email" name="email" placeholder="Enter email address">
+            <label for="phone">
+                Phone
+            </label>
+
+            <input type="text" id="phone" name="phone" placeholder="Enter phone number" required>
+
+        </div>
 
 
-        <label>
-            Date of Birth
-            <span style="
-                color:#9ca3af;
-                font-weight:400;
-            ">
-                (optional)
-            </span>
-        </label>
+        <div class="form-group">
 
-        <input type="date" name="date_of_birth">
+            <label for="email">
+                Email
+                <span class="optional">
+                    (optional)
+                </span>
+            </label>
 
+            <input type="email" id="email" name="email" placeholder="Enter email address">
 
-        <label>
-            Original Registration Date
-        </label>
-
-        <input type="date" name="registration_date" required>
+        </div>
 
 
-        <label>
-            Current Membership Due Date
-        </label>
+        <div class="form-group">
 
-        <input type="date" name="payment_due_date" required>
+            <label for="date_of_birth">
+                Date of Birth
+                <span class="optional">
+                    (optional)
+                </span>
+            </label>
 
-        <p style="
-            margin:-7px 0 20px;
-            color:#9ca3af;
-            font-size:12px;
-        ">
-            Enter the date this member's current paid membership ends.
-        </p>
+            <input type="date" id="date_of_birth" name="date_of_birth">
+
+        </div>
 
 
-        <div style="
-            display:flex;
-            gap:10px;
-            margin-top:8px;
-            flex-wrap:wrap;
-        ">
+        <div class="form-group">
+
+            <label for="registration_date">
+                Original Registration Date
+            </label>
+
+            <input type="date" id="registration_date" name="registration_date" required>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="payment_due_date">
+                Current Membership Due Date
+            </label>
+
+            <input type="date" id="payment_due_date" name="payment_due_date" required>
+
+            <p class="field-help">
+                Enter the date this member's current paid membership ends.
+            </p>
+
+        </div>
+
+
+        <div class="form-actions">
 
             <button type="submit">
                 Add Existing Member
             </button>
 
-            <a href="/members" class="button" style="
-                background:#f3f4f6;
-                color:#374151;
-            ">
+            <a href="/members" class="button button-secondary">
                 Cancel
             </a>
 
@@ -171,5 +142,140 @@ Add Existing Member
     </form>
 
 </div>
+
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+    }
+
+
+    .back-link {
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+
+    .back-link:hover {
+        color: #111827;
+    }
+
+
+    .page-header h1 {
+        margin: 10px 0 0;
+        font-size: 28px;
+        letter-spacing: -0.6px;
+    }
+
+
+    .page-description {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+
+    .existing-member-card {
+        max-width: 700px;
+    }
+
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+
+    .card-header p {
+        margin: 6px 0 24px;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+
+    .info-notice {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+        border-radius: 9px;
+        padding: 13px 15px;
+        margin-bottom: 24px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+
+    .info-notice strong {
+        color: #1e3a8a;
+    }
+
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+
+    .optional {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+
+
+    .field-help {
+        margin: 6px 0 0;
+        color: #9ca3af;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+
+
+    .button-secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+
+    .button-secondary:hover {
+        background: #e5e7eb;
+    }
+
+
+    @media (max-width: 600px) {
+
+        .page-header h1 {
+            font-size: 24px;
+        }
+
+        .existing-member-card {
+            max-width: none;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions button,
+        .form-actions .button {
+            width: 100%;
+            text-align: center;
+        }
+
+    }
+</style>
 
 {% endblock %}

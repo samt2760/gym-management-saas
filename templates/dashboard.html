@@ -4,29 +4,14 @@
 Dashboard
 {% endblock %}
 {% block content %}
-<!-- PAGE HEADER -->
-<div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:20px;
-    margin-bottom:28px;
-    flex-wrap:wrap;
-">
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+<div class="page-header">
     <div>
-        <h1 style="
-        margin:0;
-        font-size:28px;
-        letter-spacing:-.6px;
-    ">
-            Dashboard
-        </h1>
+        <h1>Dashboard</h1>
 
-        <p style="
-        margin:6px 0 0;
-        color:#6b7280;
-        font-size:14px;
-    ">
+        <p>
             Overview of your gym's activity and membership
         </p>
     </div>
@@ -35,22 +20,15 @@ Dashboard
         + Register Member
     </a>
 </div>
-<!-- MEMBERSHIP OVERVIEW -->
-<div style="
-    display:flex;
-    align-items:center;
-    margin-bottom:14px;
-">
-    <h2 style="
-    margin:0;
-    font-size:17px;
-">
-        Membership Overview
-    </h2>
+<!-- ============================================================
+     MEMBERSHIP OVERVIEW
+============================================================ -->
+<div class="section-title">
+    <h2>Membership Overview</h2>
 </div>
-<!-- MEMBERSHIP CARDS -->
 <div class="dashboard-grid">
     <!-- TOTAL MEMBERS -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -75,6 +53,7 @@ Dashboard
 
 
     <!-- ACTIVE MEMBERS -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -99,6 +78,7 @@ Dashboard
 
 
     <!-- EXPIRED MEMBERS -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -123,6 +103,7 @@ Dashboard
 
 
     <!-- DUE SOON -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -138,30 +119,22 @@ Dashboard
             </div>
 
             <div class="dashboard-icon orange">
-                ⏱
+                ⏱️
             </div>
 
         </div>
 
     </div>
 </div>
-<!-- REVENUE -->
-<div style="
-    display:flex;
-    align-items:center;
-    margin-top:32px;
-    margin-bottom:14px;
-">
-    <h2 style="
-    margin:0;
-    font-size:17px;
-">
-        Revenue
-    </h2>
+<!-- ============================================================
+     REVENUE
+============================================================ -->
+<div class="section-title revenue-title">
+    <h2>Revenue</h2>
 </div>
-<!-- REVENUE CARDS -->
 <div class="dashboard-grid revenue-grid">
     <!-- TOTAL COLLECTED -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -171,7 +144,7 @@ Dashboard
                     Total Collected
                 </div>
 
-                <div class="stat">
+                <div class="stat revenue-value">
                     {{ gym.currency }}
                     {{ "%.2f"|format(total_collected) }}
                 </div>
@@ -187,6 +160,7 @@ Dashboard
 
 
     <!-- TODAY -->
+
     <div class="card dashboard-card">
 
         <div class="dashboard-card-content">
@@ -196,7 +170,7 @@ Dashboard
                     Today's Revenue
                 </div>
 
-                <div class="stat">
+                <div class="stat revenue-value">
                     {{ gym.currency }}
                     {{ "%.2f"|format(today_revenue) }}
                 </div>
@@ -212,8 +186,8 @@ Dashboard
 
 
     <!-- THIS MONTH -->
-    <div class="card dashboard-card">
 
+    <div class="card dashboard-card">
         <div class="dashboard-card-content">
 
             <div>
@@ -221,27 +195,27 @@ Dashboard
                     This Month
                 </div>
 
-                <div class="stat">
+                <div class="stat revenue-value">
                     {{ gym.currency }}
-                    {{ "%.2f"|format(month_revenue) }}</div>
+                    {{ "%.2f"|format(month_revenue) }}
+                </div>
             </div>
 
             <div class="dashboard-icon orange">
-                ↗
+                ↗️
             </div>
 
         </div>
 
     </div>
-</div>
-<!-- MEMBERS DUE SOON -->
+</div><!-- ============================================================
+     MEMBERS DUE SOON
+============================================================ -->
 <div class="card dashboard-section">
     <div class="section-header">
 
         <div>
-            <h2>
-                Members Due Soon
-            </h2>
+            <h2>Members Due Soon</h2>
 
             <p>
                 Memberships expiring within the next 7 days
@@ -255,24 +229,34 @@ Dashboard
     </div>
 
 
-    {% if due_soon_members %}
+    {% if members_due_soon %}
 
     <div class="table-container">
 
-        <table>
+        <table class="dashboard-table">
 
             <thead>
+
                 <tr>
+
                     <th>Name</th>
+
                     <th>Phone</th>
+
                     <th>Due Date</th>
-                    <th>Action</th>
+
+                    <th class="action-column">
+                        Action
+                    </th>
+
                 </tr>
+
             </thead>
+
 
             <tbody>
 
-                {% for member in due_soon_members %}
+                {% for member in members_due_soon %}
 
                 <tr>
 
@@ -290,10 +274,12 @@ Dashboard
                         {{ member.payment_due_date }}
                     </td>
 
-                    <td class="action-cell">
+                    <td class="action-column">
+
                         <a href="/members/{{ member.id }}" class="button small-button">
                             View
                         </a>
+
                     </td>
 
                 </tr>
@@ -326,14 +312,14 @@ Dashboard
 
     {% endif %}
 </div>
-<!-- RECENT MEMBERS -->
+<!-- ============================================================
+     RECENT MEMBERS
+============================================================ -->
 <div class="card dashboard-section">
     <div class="section-header">
 
         <div>
-            <h2>
-                Recent Members
-            </h2>
+            <h2>Recent Members</h2>
 
             <p>
                 Latest members registered at your gym
@@ -351,18 +337,30 @@ Dashboard
 
     <div class="table-container">
 
-        <table>
+        <table class="dashboard-table recent-members-table">
 
             <thead>
+
                 <tr>
+
                     <th>Name</th>
+
                     <th>Phone</th>
+
                     <th>Membership</th>
+
                     <th>Due Date</th>
+
                     <th>Status</th>
-                    <th>Action</th>
+
+                    <th class="action-column">
+                        Action
+                    </th>
+
                 </tr>
+
             </thead>
+
 
             <tbody>
 
@@ -390,9 +388,7 @@ Dashboard
 
                     <td>
 
-                        {% if member.status == "Active" %}
-
-                        <span class="status active">
+                        {% if member.status == "Active" %}<span class="status active">
                             ● Active
                         </span>
 
@@ -406,7 +402,7 @@ Dashboard
 
                     </td>
 
-                    <td class="action-cell">
+                    <td class="action-column">
 
                         <a href="/members/{{ member.id }}" class="button small-button">
                             View
@@ -432,28 +428,83 @@ Dashboard
             No members registered yet.
         </strong>
 
-        <p>
-            Register your first member to get started.
+        <p>Register your first member to get started.
         </p>
 
     </div>
 
     {% endif %}
 </div>
-<!-- DASHBOARD STYLES -->
+<!-- ============================================================
+     DASHBOARD STYLES
+============================================================ -->
 <style>
+    /* ========================================================
+       PAGE HEADER
+    ======================================================== */
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: -.6px;
+    }
+
+    .page-header p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+
+    /* ========================================================
+       SECTION TITLES
+    ======================================================== */
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+        margin: 0;
+        font-size: 17px;
+    }
+
+    .revenue-title {
+        margin-top: 32px;
+    }
+
+
+    /* ========================================================
+       DASHBOARD GRID
+    ======================================================== */
+
     .dashboard-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 20px;
         width: 100%;
-        margin-bottom: 0;
     }
 
     .revenue-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         margin-bottom: 32px;
     }
+
+
+    /* ========================================================
+       DASHBOARD CARDS
+    ======================================================== */
 
     .dashboard-card {
         margin-bottom: 0;
@@ -471,13 +522,25 @@ Dashboard
         font-size: 13px;
     }
 
+    .revenue-value {
+        white-space: nowrap;
+    }
+
+
+    /* ========================================================
+       DASHBOARD ICONS
+    ======================================================== */
+
     .dashboard-icon {
         width: 42px;
         height: 42px;
+        min-width: 42px;
         border-radius: 10px;
+
         display: flex;
         align-items: center;
         justify-content: center;
+
         font-size: 20px;
         flex-shrink: 0;
     }
@@ -507,6 +570,11 @@ Dashboard
         color: #7c3aed;
     }
 
+
+    /* ========================================================
+       DASHBOARD SECTIONS
+    ======================================================== */
+
     .dashboard-section {
         margin-bottom: 32px;
         overflow: hidden;
@@ -531,32 +599,75 @@ Dashboard
         font-size: 13px;
     }
 
+
+    /* ========================================================
+       TABLES
+    ======================================================== */
+
     .table-container {
         width: 100%;
         overflow-x: auto;
+        border-radius: 8px;
     }
 
-    .table-container table {
+    .dashboard-table {
         width: 100%;
         min-width: 650px;
         border-collapse: collapse;
+        table-layout: auto;
     }
 
-    .action-cell {
-        text-align: right;
+    .dashboard-table th,
+    .dashboard-table td {
+        vertical-align: middle;
+    }
+
+    .dashboard-table th {
+        white-space: nowrap;
+    }
+
+    .dashboard-table td {
+        white-space: nowrap;
+    }
+
+
+    /* ========================================================
+       ACTION COLUMN
+    ======================================================== */
+
+    .action-column {
+        width: 1%;
+        text-align: right !important;
+        white-space: nowrap !important;
+    }
+
+    .action-column .button {
+        margin-left: auto;
     }
 
     .small-button {
         padding: 8px 13px;
         font-size: 12px;
+        min-width: 58px;
     }
 
+
+    /* ========================================================
+       STATUS
+    ======================================================== */
+
     .status {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+
         padding: 5px 9px;
+
         border-radius: 999px;
+
         font-size: 12px;
         font-weight: 600;
+
+        white-space: nowrap;
     }
 
     .status.active {
@@ -569,11 +680,20 @@ Dashboard
         color: #b91c1c;
     }
 
+
+    /* ========================================================
+       EMPTY STATES
+    ======================================================== */
+
     .empty-state {
         padding: 32px 20px;
+
         text-align: center;
+
         color: #6b7280;
+
         background: #f9fafb;
+
         border-radius: 10px;
     }
 
@@ -589,20 +709,28 @@ Dashboard
     .empty-icon {
         width: 42px;
         height: 42px;
+
         margin: 0 auto 10px;
+
         border-radius: 50%;
+
         background: #ecfdf5;
         color: #059669;
+
         display: flex;
         align-items: center;
         justify-content: center;
+
         font-weight: 700;
         font-size: 20px;
     }
 
 
-    /* TABLET */
-    @media (max-width:1000px) {
+    /* ========================================================
+       TABLET
+    ======================================================== */
+
+    @media (max-width: 1000px) {
 
         .dashboard-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -615,12 +743,23 @@ Dashboard
     }
 
 
-    /* MOBILE */
-    @media (max-width:650px) {
+    /* ========================================================
+       MOBILE
+    ======================================================== */
+
+    @media (max-width: 650px) {
 
         .dashboard-grid,
         .revenue-grid {
             grid-template-columns: 1fr;
+        }
+
+        .page-header {
+            align-items: flex-start;
+        }
+
+        .page-header .button {
+            width: 100%;
         }
 
         .section-header {
@@ -630,6 +769,10 @@ Dashboard
 
         .section-header .button {
             width: auto;
+        }
+
+        .dashboard-table {
+            min-width: 620px;
         }
 
     }

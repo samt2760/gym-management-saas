@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import Session
@@ -12,7 +12,7 @@ from app.models import Gym, Member, Payment
 
 
 def _utc_today() -> date:
-    return datetime.now(timezone.utc).date()
+    return datetime.now(UTC).date()
 
 
 def get_or_create_gym(db: Session) -> Gym:
@@ -25,10 +25,14 @@ def get_or_create_gym(db: Session) -> Gym:
     return gym
 
 
-def update_member_status(db: Session) -> None:
+def update_member_status(db: Session, gym_id: int | None = None) -> None:
     today = _utc_today()
     changed = False
-    for member in db.query(Member).filter(Member.deleted_at.is_(None)).all():
+    query = db.query(Member).filter(Member.deleted_at.is_(None))
+    if gym_id is not None:
+        query = query.filter(Member.gym_id == gym_id)
+
+    for member in query.all():
         original_status = member.status
         new_status = MembershipService.refresh_status(member, today)
         if original_status != new_status:

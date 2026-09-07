@@ -1,14 +1,12 @@
 {% extends "base.html" %}
-
 {% block title %}Payments{% endblock %}
-
 {% block topbar_title %}
 Payments
 {% endblock %}
-
 {% block content %}
-
-<!-- PAGE HEADER -->
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
 <div style="
     display:flex;
     justify-content:space-between;
@@ -17,281 +15,243 @@ Payments
     margin-bottom:28px;
     flex-wrap:wrap;
 ">
-
     <div>
+
         <h1 style="
-            margin:0;
-            font-size:28px;
-            letter-spacing:-.6px;
-        ">
+        margin:0;
+        font-size:28px;
+        letter-spacing:-0.6px;
+    ">
             Payments
         </h1>
 
         <p style="
-            margin:6px 0 0;
-            color:#6b7280;
-            font-size:14px;
-        ">
-            Track registration and membership renewal payments.
-        </p>
-    </div>
-
-</div>
-
-
-<!-- REVENUE SUMMARY -->
-<div class="grid">
-
-    <div class="card">
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
-            <div>
-                <div class="muted" style="font-size:13px;">
-                    Total Revenue
-                </div>
-
-                <div class="stat">
-                    {{ gym.currency }}
-                    {{ "%.2f"|format(total_revenue) }}
-                </div>
-            </div>
-
-            <div style="
-                width:40px;
-                height:40px;
-                border-radius:10px;
-                background:#ecfdf5;
-                color:#047857;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-weight:700;
-            ">
-                ₵
-            </div>
-        </div>
-    </div>
-
-
-    <div class="card">
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
-            <div>
-                <div class="muted" style="font-size:13px;">
-                    Today's Revenue
-                </div>
-
-                <div class="stat">
-                    {{ gym.currency }}
-                    {{ "%.2f"|format(today_revenue) }}
-                </div>
-            </div>
-
-            <div style="
-                width:40px;
-                height:40px;
-                border-radius:10px;
-                background:#eff6ff;
-                color:#2563eb;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-weight:700;
-            ">
-                ₵
-            </div>
-        </div>
-    </div>
-
-
-    <div class="card">
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-        ">
-            <div>
-                <div class="muted" style="font-size:13px;">
-                    This Month
-                </div>
-
-                <div class="stat">
-                    {{ gym.currency }}
-                    {{ "%.2f"|format(month_revenue) }}
-                </div>
-            </div>
-
-            <div style="
-                width:40px;
-                height:40px;
-                border-radius:10px;
-                background:#f5f3ff;
-                color:#7c3aed;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-weight:700;
-            ">
-                ↑
-            </div>
-        </div>
-    </div>
-
-</div>
-
-
-<!-- PAYMENT HISTORY / FILTERS -->
-<div class="card">
-
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:15px;
-        flex-wrap:wrap;
+        margin:6px 0 0;
+        color:#6b7280;
+        font-size:14px;
     ">
+            Track and review all gym payment activity
+        </p>
+
+    </div>
+</div>
+<!-- =========================================================
+     REVENUE SUMMARY
+     ========================================================= -->
+<div class="payment-summary-grid">
+    <!-- TOTAL REVENUE -->
+
+    <div class="card payment-summary-card">
 
         <div>
+
+            <div class="payment-summary-label">
+                Total Revenue
+            </div>
+
+            <div class="payment-summary-value">
+                {{ gym.currency }}
+                {{ "%.2f"|format(total_revenue) }}
+            </div>
+
+            <div class="payment-summary-description">
+                All recorded payments
+            </div>
+
+        </div>
+
+        <div class="payment-summary-icon total-revenue-icon">
+            ₵
+        </div>
+
+    </div>
+
+
+    <!-- TODAY -->
+
+    <div class="card payment-summary-card">
+
+        <div>
+
+            <div class="payment-summary-label">
+                Today
+            </div>
+
+            <div class="payment-summary-value">
+                {{ gym.currency }}
+                {{ "%.2f"|format(today_revenue) }}
+            </div>
+
+            <div class="payment-summary-description">
+                Payments received today
+            </div>
+
+        </div>
+
+        <div class="payment-summary-icon today-revenue-icon">
+            ↗
+        </div>
+
+    </div>
+
+
+    <!-- THIS MONTH -->
+
+    <div class="card payment-summary-card">
+
+        <div>
+
+            <div class="payment-summary-label">
+                This Month
+            </div>
+
+            <div class="payment-summary-value">
+                {{ gym.currency }}
+                {{ "%.2f"|format(month_revenue) }}
+            </div>
+
+            <div class="payment-summary-description">
+                Payments received this month
+            </div>
+
+        </div>
+
+        <div class="payment-summary-icon month-revenue-icon">
+            ◷
+        </div>
+
+    </div>
+</div>
+<!-- =========================================================
+     PAYMENT FILTERS
+     ========================================================= -->
+<div class="card payment-filter-card">
+    <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+">
+
+        <div>
+
             <h2 style="
-                margin:0;
-                font-size:17px;
-            ">
+            margin:0;
+            font-size:17px;
+        ">
                 Payment History
             </h2>
 
             <p style="
-                margin:5px 0 0;
-                color:#6b7280;
-                font-size:12px;
-            ">
-                Filter payments by time period.
+            margin:5px 0 0;
+            color:#6b7280;
+            font-size:13px;
+        ">
+                View recorded transactions by period
             </p>
+
         </div>
 
 
-        <div style="
-            display:flex;
-            gap:8px;
-            flex-wrap:wrap;
-        ">
+        <!-- FILTER BUTTONS -->
 
-            <a href=" /payments?period=all" class="button" style="
-                    {% if period == 'all' %}
-                        background:#111827;
-                        color:white;
-                    {% else %}
-                        background:#f3f4f6;
-                        color:#374151;
-                    {% endif %}
-                    
-                ">
+        <div class="payment-filter-buttons">
+
+            <a href="/payments?period=all" class="payment-filter-button {% if period == 'all' %}selected{% endif %}">
                 All
             </a>
 
 
-            <a href="/payments?period=today" class="button" style="
-                        {% if period == 'today' %}
-                            background:#111827;
-                            color:white;
-                        {% else %}
-                            background:#f3f4f6;
-                            color:#374151;
-                        {% endif %}
-
-                    ">
+            <a href="/payments?period=today"
+                class="payment-filter-button {% if period == 'today' %}selected{% endif %}">
                 Today
             </a>
 
 
-            <a href="/payments?period=month" class="button" style="
-                        {% if period == 'month' %}
-                            background:#111827;
-                            color:white;
-                        {% else %}
-                            background:#f3f4f6;
-                            color:#374151;
-                        {% endif %}
-
-                    ">
+            <a href="/payments?period=month"
+                class="payment-filter-button {% if period == 'month' %}selected{% endif %}">
                 This Month
             </a>
 
         </div>
 
     </div>
-
 </div>
-
-
-<!-- PAYMENT GROUPS -->
-
+<!-- =========================================================
+     PAYMENT GROUPS
+     ========================================================= -->
 {% if payment_groups %}
-
 {% for month, group in payment_groups.items() %}
 
-<div class="card">
+<div class="card payment-month-card">
 
-    <div style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:15px;
-                margin-bottom:18px;
-                flex-wrap:wrap;
-            ">
+    <!-- MONTH HEADER -->
+
+    <div class="payment-month-header">
 
         <div>
-            <h2 style="
-                        margin:0;
-                        font-size:18px;
-                    ">
-                {{ month }}
+
+            <h2 class="payment-month-title">{{ month }}
             </h2>
 
-            <p style="
-                        margin:5px 0 0;
-                        color:#6b7280;
-                        font-size:12px;
-                    ">
+            <p class="payment-month-count">
+
                 {{ group.payments|length }}
+
                 payment{% if group.payments|length != 1 %}s{% endif %}
+
             </p>
+
         </div>
 
 
-        <div style="
-                    background:#ecfdf5;
-                    color:#047857;
-                    padding:8px 12px;
-                    border-radius:8px;
-                    font-size:13px;
-                    font-weight:700;
-                ">
-            Total:
+        <div class="payment-month-total">
+
+            <span>
+                Total
+            </span>
+
             {{ gym.currency }}
             {{ "%.2f"|format(group.total) }}
+
         </div>
 
     </div>
 
 
-    <div style="overflow-x:auto;">
+    <!-- PAYMENT TABLE -->
 
-        <table>
+    <div class="payment-table-wrapper">
+
+        <table class="payment-table">
 
             <thead>
+
                 <tr>
-                    <th>Date</th>
-                    <th>Member</th>
-                    <th>Type</th>
-                    <th>Amount</th>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        Member
+                    </th>
+
+                    <th>
+                        Payment Type
+                    </th>
+
+                    <th>
+                        Membership
+                    </th>
+
+                    <th style="text-align:right;">
+                        Amount
+                    </th>
+
                 </tr>
+
             </thead>
 
 
@@ -301,25 +261,28 @@ Payments
 
                 <tr>
 
+                    <!-- DATE -->
+
                     <td>
-                        {{ payment.payment_date }}
+                        <span class="payment-date">
+                            {{ payment.payment_date }}
+                        </span>
                     </td>
 
+
+                    <!-- MEMBER -->
 
                     <td>
 
                         {% if payment.member_id %}
 
-                        <a href="/members/{{ payment.member_id }}" style="
-                                                color:#2563eb;
-                                                text-decoration:none;
-                                                font-weight:600;
-                                            ">
-                            {{ payment.member_name }}</a>
+                        <a href="/members/{{ payment.member_id }}" class="payment-member-link">
+                            {{ payment.member_name }}
+                        </a>
 
                         {% else %}
 
-                        <span style="font-weight:600;">
+                        <span class="payment-member-name">
                             {{ payment.member_name }}
                         </span>
 
@@ -328,28 +291,47 @@ Payments
                     </td>
 
 
+                    <!-- PAYMENT TYPE -->
+
                     <td>
 
-                        <span style="
-                                        display:inline-flex;
-                                        padding:5px 9px;
-                                        border-radius:6px;
-                                        background:#f3f4f6;
-                                        color:#374151;
-                                        font-size:12px;
-                                        font-weight:600;
-                                    ">
-                            {{ payment.payment_type }}
+                        {% if payment.payment_type == "Registration" %}
+
+                        <span class="payment-type-badge registration-payment">
+                            Registration
+                        </span>
+
+                        {% else %}
+
+                        <span class="payment-type-badge renewal-payment">
+                            Renewal
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- MEMBERSHIP -->
+
+                    <td>
+
+                        <span class="membership-payment-badge">
+                            {{ payment.membership_type }}
                         </span>
 
                     </td>
 
 
-                    <td>
-                        <strong>
-                            {{ gym.currency }}
+                    <!-- AMOUNT -->
+
+                    <td style="text-align:right;">
+
+                        <strong class="payment-amount">
+                            {{ payment.currency }}
                             {{ "%.2f"|format(payment.amount) }}
                         </strong>
+
                     </td>
 
                 </tr>
@@ -365,54 +347,442 @@ Payments
 </div>
 
 {% endfor %}
-
 {% else %}
-
-<!-- EMPTY STATE -->
-
-<div class="card">
-
-    <div style="
-            text-align:center;
-            padding:45px 20px;
-            color:#6b7280;
-        ">
-
-        <div style="
-                width:50px;
-                height:50px;
-                margin:0 auto 12px;
-                border-radius:12px;
-                background:#f3f4f6;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:22px;
-            ">
-            ₵
-        </div>
-
-
-        <h2 style="
-                margin:0;
-                color:#374151;
-                font-size:17px;
-            ">
-            No payments found
-        </h2>
-
-
-        <p style="
-                margin:6px 0 0;
-                font-size:13px;
-            ">
-            Payment records will appear here once payments are made.
-        </p>
-
+<!-- =========================================================
+     EMPTY STATE
+     ========================================================= -->
+<div class="card payment-empty-card">
+    <div class="payment-empty-icon">
+        ₵
     </div>
 
+    <h2>
+        No payments found
+    </h2>
+
+    <p>
+
+        {% if period == "today" %}
+
+        There are no payments recorded today.
+
+        {% elif period == "month" %}
+
+        There are no payments recorded this month.
+
+        {% else %}
+
+        Payment records will appear here once payments are made.
+
+        {% endif %}
+
+    </p>
 </div>
-
 {% endif %}
+<!-- =========================================================
+     PAGE STYLES
+     ========================================================= -->
+<style>
+    /* =========================================================
+   SUMMARY========================================================= */
 
+    .payment-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+
+    .payment-summary-card {
+        margin-bottom: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+
+    .payment-summary-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+    }
+
+
+    .payment-summary-value {
+        margin-top: 7px;
+        font-size: 25px;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: -0.3px;
+    }
+
+
+    .payment-summary-description {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #9ca3af;
+    }
+
+
+    .payment-summary-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+
+    .total-revenue-icon {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+
+    .today-revenue-icon {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+
+    .month-revenue-icon {
+        background: #fff7ed;
+        color: #d97706;
+    }
+
+
+    /* =========================================================
+   FILTERS
+   ========================================================= */
+
+    .payment-filter-card {
+        margin-bottom: 24px;
+    }
+
+
+    .payment-filter-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+
+    .payment-filter-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 14px;
+        border-radius: 8px;
+        background: #f3f4f6;
+        color: #374151;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: all .15s ease;
+    }
+
+
+    .payment-filter-button:hover {
+        background: #e5e7eb;
+    }
+
+
+    .payment-filter-button.selected {
+        background: #111827;
+        color: #ffffff;
+    }
+
+
+    /* =========================================================
+   MONTH CARD
+   ========================================================= */
+
+    .payment-month-card {
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+
+    .payment-month-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+
+
+    .payment-month-title {
+        margin: 0;
+        font-size: 18px;
+        color: #111827;
+    }
+
+
+    .payment-month-count {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+
+    .payment-month-total {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 8px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+
+    .payment-month-total span {
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+
+    /* =========================================================
+   TABLE
+   ========================================================= */
+
+    .payment-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+
+    .payment-table {
+        width: 100%;
+        min-width: 780px;
+        border-collapse: collapse;
+    }
+
+
+    .payment-table th {
+        white-space: nowrap;
+    }
+
+
+    .payment-table td {
+        vertical-align: middle;
+    }
+
+
+    .payment-date {
+        color: #4b5563;
+        font-size: 13px;
+    }
+
+
+    .payment-member-link {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+
+    .payment-member-link:hover {
+        text-decoration: underline;
+    }
+
+
+    .payment-member-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: #374151;
+    }
+
+
+    /* =========================================================
+   PAYMENT BADGES
+   ========================================================= */
+
+    .payment-type-badge,
+    .membership-payment-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+
+    .registration-payment {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+
+    .renewal-payment {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+
+    .membership-payment-badge {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+
+    .payment-amount {
+        color: #111827;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+
+    /* =========================================================EMPTY STATE
+   ========================================================= */
+
+    .payment-empty-card {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+
+    .payment-empty-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        border-radius: 14px;
+        background: #f3f4f6;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+
+    .payment-empty-card h2 {
+        margin: 0;
+        color: #374151;
+        font-size: 17px;
+    }
+
+
+    .payment-empty-card p {
+        margin: 7px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+
+    /* =========================================================
+   TABLET
+   ========================================================= */
+
+    @media (max-width:950px) {
+
+        .payment-summary-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .payment-summary-card:last-child {
+            grid-column: 1 / -1;
+        }
+
+    }
+
+
+    /* =========================================================
+   MOBILE
+   ========================================================= */
+
+    @media (max-width:700px) {
+
+        .payment-summary-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+
+        .payment-summary-card:last-child {
+            grid-column: auto;
+        }
+
+
+        .payment-summary-value {
+            font-size: 23px;
+        }
+
+
+        .payment-filter-card {
+            padding: 16px;
+        }
+
+
+        .payment-filter-card>div {
+            align-items: stretch !important;
+            flex-direction: column;
+        }
+
+
+        .payment-filter-buttons {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+
+        .payment-filter-button {
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+
+        .payment-month-card {
+            padding: 16px;
+        }
+
+
+        .payment-month-header {
+            align-items: flex-start;
+        }
+
+
+        .payment-month-total {
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: space-between;
+        }
+
+
+        .payment-table {
+            min-width: 780px;
+        }
+
+    }
+
+
+    /* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
+    @media (max-width:420px) {
+
+        .payment-filter-buttons {
+            grid-template-columns: 1fr;
+        }
+
+    }
+</style>
 {% endblock %}

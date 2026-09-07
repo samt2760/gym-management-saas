@@ -1,13 +1,12 @@
-from datetime import date
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from app.auth import require_auth, require_permission
+from app.auth import get_current_gym, require_permission
 from app.models import Payment, User
 from app.services.reporting_service import payment_totals
 from app.web import get_db, templates
-
 
 router = APIRouter()
 
@@ -19,7 +18,8 @@ def payments_page(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("payments.view")),
 ):
-    today = date.today()
+    gym = get_current_gym(db, user)
+    today = datetime.now(UTC).date()
     all_payments = db.query(Payment).filter(Payment.gym_id == user.gym_id).order_by(
         Payment.payment_date.desc(), Payment.id.desc()).all()
     if period == "today":
@@ -51,10 +51,12 @@ def payments_page(
         request=request,
         name="payments.html",
         context={
+            "gym": gym,
             "payment_groups": payment_groups,
             "total_revenue": total_revenue,
             "today_revenue": today_revenue,
             "month_revenue": month_revenue,
             "period": period,
+                "current_user": user,
         },
     )

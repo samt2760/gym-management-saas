@@ -256,14 +256,15 @@ justification, migration plan, and automated regression coverage.
 
 ## Standard development commands
 
-Use the project virtual environment on Windows:
+The canonical application entrypoint is `app.main:app`. Use the project
+virtual environment on Windows:
 
 ```powershell
 # Install dependencies
 .\\venv\\Scripts\\python.exe -m pip install -r requirements.txt
 
 # Run the development server
-.\\venv\\Scripts\\python.exe -m uvicorn main:app --reload
+.\\venv\\Scripts\\python.exe -m uvicorn app.main:app --reload
 
 # Run automated tests (after the pytest suite is added)
 .\\venv\\Scripts\\python.exe -m pytest
