@@ -26,7 +26,7 @@ services:
     environment:
       POSTGRES_DB: gym_management
       POSTGRES_USER: gym_user
-      POSTGRES_PASSWORD: gym_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U gym_user -d gym_management" ]
       interval: 10s
