@@ -250,6 +250,30 @@ def create_app() -> FastAPI:
 
         return response
 
+    @app.get("/health")
+    def health_check():
+        from sqlalchemy import text
+
+        from app.core.database import engine
+
+        try:
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+
+            return {
+                "status": "ok",
+                "database": "ok",
+            }
+
+        except Exception:
+            return JSONResponse(
+                {
+                    "status": "error",
+                    "database": "unavailable",
+                },
+                status_code=503,
+            )
+
     @app.get("/")
     def home():
         return RedirectResponse(

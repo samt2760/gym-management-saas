@@ -1,25 +1,37 @@
 services:
   web:
+    restart: unless-stopped
     build:
       context: .
     image: gym-management:dev
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     container_name: gym-management-dev
     ports:
       - "8000:8000"
     env_file:
       - .env
-    volumes:
-      - ./gym.db:/app/gym.db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
+    restart: unless-stopped
     image: postgres:17
     container_name: gym-management-db
     environment:
       POSTGRES_DB: gym_management
       POSTGRES_USER: gym_user
       POSTGRES_PASSWORD: gym_password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U gym_user -d gym_management" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
