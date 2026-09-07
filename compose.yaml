@@ -3,14 +3,13 @@ services:
     restart: unless-stopped
     build:
       context: .
-    image: gym-management:dev
+    image: gym-management:${IMAGE_TAG:-dev}
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
-    container_name: gym-management-dev
     ports:
       - "8000:8000"
     env_file:
@@ -22,7 +21,6 @@ services:
   db:
     restart: unless-stopped
     image: postgres:17
-    container_name: gym-management-db
     environment:
       POSTGRES_DB: gym_management
       POSTGRES_USER: gym_user
