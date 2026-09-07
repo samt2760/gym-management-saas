@@ -102,8 +102,14 @@ def create_app() -> FastAPI:
             "/account",
         )
 
-        is_protected_path = request.url.path.startswith(
-            protected_prefixes
+        public_password_paths = {
+            "/account/password/forgot",
+            "/account/password/reset",
+            "/account/password/reset-request",
+        }
+        is_protected_path = (
+            request.url.path.startswith(protected_prefixes)
+            and request.url.path not in public_password_paths
         )
 
         if is_protected_path:
@@ -155,10 +161,7 @@ def create_app() -> FastAPI:
         # We read the raw body, validate csrf_token, then replay
         # the body so FastAPI can parse Form(...) normally.
         # ---------------------------------------------------------
-        csrf_exempt_paths = {
-            "/account/password/reset-request",
-            "/account/password/reset",
-        }
+        csrf_exempt_paths: set[str] = set()
 
         if (
             request.method

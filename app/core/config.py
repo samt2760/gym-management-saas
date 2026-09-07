@@ -85,6 +85,27 @@ LOGIN_RATE_LIMIT_SECONDS = int(
     )
 )
 
+PASSWORD_RESET_TOKEN_TTL_SECONDS = int(
+    os.getenv(
+        "PASSWORD_RESET_TOKEN_TTL_SECONDS",
+        "3600",
+    )
+)
+
+PASSWORD_RESET_RATE_LIMIT_SECONDS = int(
+    os.getenv(
+        "PASSWORD_RESET_RATE_LIMIT_SECONDS",
+        "600",
+    )
+)
+
+PASSWORD_RESET_MAX_REQUESTS = int(
+    os.getenv(
+        "PASSWORD_RESET_MAX_REQUESTS",
+        "3",
+    )
+)
+
 TEMPLATES_DIRECTORY = PROJECT_ROOT / "templates"
 
 STATIC_DIRECTORY = PROJECT_ROOT / "static"

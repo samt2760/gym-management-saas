@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+from collections import OrderedDict
 from collections import defaultdict, deque
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
@@ -13,6 +14,9 @@ from sqlalchemy.orm import Session
 from app.core.config import (
     LOGIN_RATE_LIMIT_SECONDS,
     MAX_LOGIN_ATTEMPTS,
+    PASSWORD_RESET_MAX_REQUESTS,
+    PASSWORD_RESET_RATE_LIMIT_SECONDS,
+    PASSWORD_RESET_TOKEN_TTL_SECONDS,
     SECRET_KEY,
     SESSION_COOKIE_NAME,
     SESSION_COOKIE_SAME_SITE,
@@ -32,6 +36,8 @@ from app.web import get_db
 RATE_LIMIT_WINDOW = timedelta(seconds=LOGIN_RATE_LIMIT_SECONDS)
 
 _login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
+_unknown_reset_attempts: OrderedDict[str, deque[datetime]] = OrderedDict()
+_MAX_UNKNOWN_RESET_KEYS = 10000
 
 
 def _now_utc() -> datetime:
@@ -212,12 +218,65 @@ def revoke_all_user_sessions(db: Session, user_id: int) -> None:
     db.commit()
 
 
+def _prune_reset_attempts(attempts: deque[datetime], now: datetime) -> None:
+    cutoff = now - timedelta(seconds=PASSWORD_RESET_RATE_LIMIT_SECONDS)
+    while attempts and attempts[0] < cutoff:
+        attempts.popleft()
+
+
+def is_password_reset_allowed(
+    db: Session,
+    identifier: str,
+    request: Request,
+) -> bool:
+    normalized_identifier = identifier.strip().lower()
+    now = _now_utc()
+    user = db.query(User).filter(User.email == normalized_identifier).first()
+
+    if user is not None:
+        cutoff = now - timedelta(seconds=PASSWORD_RESET_RATE_LIMIT_SECONDS)
+        recent_count = (
+            db.query(PasswordResetToken)
+            .filter(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.created_at >= cutoff,
+            )
+            .count()
+        )
+        return recent_count < PASSWORD_RESET_MAX_REQUESTS
+
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"{client_ip}:{normalized_identifier}"
+    attempts = _unknown_reset_attempts.get(key)
+    if attempts is None:
+        if len(_unknown_reset_attempts) >= _MAX_UNKNOWN_RESET_KEYS:
+            _unknown_reset_attempts.popitem(last=False)
+        attempts = deque()
+        _unknown_reset_attempts[key] = attempts
+    else:
+        _unknown_reset_attempts.move_to_end(key)
+
+    _prune_reset_attempts(attempts, now)
+    if len(attempts) >= PASSWORD_RESET_MAX_REQUESTS:
+        return False
+    attempts.append(now)
+    return True
+
+
 def create_password_reset_token(db: Session, user: User) -> str:
+    now = _now_utc()
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used_at.is_(None),
+    ).update(
+        {PasswordResetToken.used_at: now},
+        synchronize_session=False,
+    )
     token = secrets.token_urlsafe(32)
     reset_token = PasswordResetToken(
         user_id=user.id,
         token_hash=_hash_secret(token),
-        expires_at=_now_utc() + timedelta(hours=1),
+        expires_at=now + timedelta(seconds=PASSWORD_RESET_TOKEN_TTL_SECONDS),
     )
     db.add(reset_token)
     db.commit()
@@ -229,7 +288,11 @@ def resolve_reset_token(db: Session, token: str) -> PasswordResetToken | None:
         return None
     return (
         db.query(PasswordResetToken)
-        .filter(PasswordResetToken.token_hash == _hash_secret(token), PasswordResetToken.used_at.is_(None))
+        .filter(
+            PasswordResetToken.token_hash == _hash_secret(token),
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > _now_utc(),
+        )
         .first()
     )
 

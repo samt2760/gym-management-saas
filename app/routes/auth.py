@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -13,6 +14,7 @@ from app.auth import (
     clear_session_cookie,
     create_password_reset_token,
     create_session,
+    is_password_reset_allowed,
     is_login_allowed,
     require_auth,
     resolve_reset_token,
@@ -21,9 +23,14 @@ from app.auth import (
 )
 from app.core.config import PASSWORD_MIN_LENGTH, SESSION_COOKIE_NAME
 from app.models.user import User, UserSession, hash_password, verify_password
+from app.services.password_reset_delivery import (
+    PasswordResetMessage,
+    get_password_reset_delivery,
+)
 from app.web import get_db, templates
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _safe_next_url(next_url: str | None) -> str:
@@ -241,35 +248,76 @@ def change_password(
 
 @router.post("/account/password/reset-request")
 def request_password_reset(
+    request: Request,
     email: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    normalized_email = email.strip().lower()
+    generic_message = "If the account exists, a reset link has been sent."
+
+    if not is_password_reset_allowed(db, normalized_email, request):
+        logger.warning("Password reset request rate-limited")
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset_request.html",
+            context={"message": generic_message},
+        )
+
     user = (
         db.query(User)
         .filter(
-            User.email == email.strip().lower()
+            User.email == normalized_email,
+            User.status == "active",
         )
         .first()
     )
 
     if user is not None:
-        create_password_reset_token(
+        token = create_password_reset_token(
             db,
             user,
         )
-
-    return {
-        "detail": (
-            "If the account exists, "
-            "a reset link has been sent."
+        reset_url = str(request.url_for("reset_password_page"))
+        reset_url = f"{reset_url}?{urlencode({'token': token})}"
+        get_password_reset_delivery().deliver(
+            PasswordResetMessage(
+                recipient=user.email,
+                reset_url=reset_url,
+            )
         )
-    }
+        logger.info("Password reset message generated")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset_request.html",
+        context={"message": generic_message},
+    )
+
+
+@router.get("/account/password/forgot")
+def password_reset_request_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset_request.html",
+        context={},
+    )
+
+
+@router.get("/account/password/reset")
+def reset_password_page(request: Request, token: str = ""):
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset.html",
+        context={"token": token},
+    )
 
 
 @router.post("/account/password/reset")
 def reset_password(
+    request: Request,
     token: str = Form(...),
     new_password: str = Form(...),
+    confirm_password: str = Form(...),
     db: Session = Depends(get_db),
 ):
     reset = resolve_reset_token(
@@ -277,63 +325,61 @@ def reset_password(
         token,
     )
 
-    now = datetime.now(UTC)
-
-    if reset is None or reset.expires_at <= now:
-        return JSONResponse(
-            {
-                "detail": (
-                    "Invalid or expired reset token."
-                )
-            },
+    if reset is None:
+        logger.warning("Invalid or expired password reset attempt")
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context={"token": token, "error": "Invalid or expired reset token."},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    user = (
-        db.query(User)
-        .filter(
-            User.id == reset.user_id
-        )
-        .first()
-    )
-
+    user = db.query(User).filter(User.id == reset.user_id).first()
     if user is None:
-        return JSONResponse(
-            {
-                "detail": (
-                    "Invalid or expired reset token."
-                )
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context={
+                "token": token,
+                "error": "Invalid or expired reset token.",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    if len(new_password) < PASSWORD_MIN_LENGTH:
-        return JSONResponse(
-            {
-                "detail": (
-                    f"New password must be at least "
-                    f"{PASSWORD_MIN_LENGTH} characters long."
-                )
+    if not new_password or len(new_password) < PASSWORD_MIN_LENGTH:
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context={
+                "token": token,
+                "error": f"New password must be at least {PASSWORD_MIN_LENGTH} characters long.",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    user.password_hash = hash_password(
-        new_password
-    )
+    if new_password != confirm_password:
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context={
+                "token": token,
+                "error": "Passwords do not match.",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
+    now = datetime.now(UTC)
+    user.password_hash = hash_password(new_password)
     reset.used_at = now
-
-    revoke_all_user_sessions(
-        db,
-        user.id,
-    )
-
+    revoke_all_user_sessions(db, user.id)
     db.commit()
+    logger.info("Password reset completed")
 
-    return {
-        "detail": "Password reset successfully."
-    }
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset.html",
+        context={"success": "Password reset successfully. Please sign in again."},
+    )
 
 
 @router.get("/account")
