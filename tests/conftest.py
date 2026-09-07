@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 os.environ["DATABASE_URL"] = "sqlite://"
-os.environ["SECRET_KEY"] = "test-secret-key-for-authentication"
+os.environ["SESSION_SECRET"] = "test-only-session-secret"
 
 # DATABASE_URL must be set before importing any application database modules.
 from app.core.database import Base, SessionLocal, engine

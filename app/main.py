@@ -156,7 +156,6 @@ def create_app() -> FastAPI:
         # the body so FastAPI can parse Form(...) normally.
         # ---------------------------------------------------------
         csrf_exempt_paths = {
-            "/login",
             "/account/password/reset-request",
             "/account/password/reset",
         }

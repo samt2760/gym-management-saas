@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import (
@@ -15,6 +15,8 @@ from app.core.config import (
     MAX_LOGIN_ATTEMPTS,
     SECRET_KEY,
     SESSION_COOKIE_NAME,
+    SESSION_COOKIE_SAME_SITE,
+    SESSION_COOKIE_SECURE,
     SESSION_TTL_SECONDS,
 )
 from app.core.database import SessionLocal
@@ -179,6 +181,26 @@ def create_session(db: Session, user: User, request: Request) -> str:
     db.add(session)
     db.commit()
     return token
+
+
+def set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=SESSION_COOKIE_SECURE,
+        samesite=SESSION_COOKIE_SAME_SITE,
+        max_age=SESSION_TTL_SECONDS,
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        samesite=SESSION_COOKIE_SAME_SITE,
+    )
 
 
 def revoke_all_user_sessions(db: Session, user_id: int) -> None:

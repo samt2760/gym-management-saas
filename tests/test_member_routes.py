@@ -29,6 +29,19 @@ def _post(client: TestClient, url: str, data: dict, **kwargs):
     return client.post(url, data=payload, **kwargs)
 
 
+def _login(client, username: str):
+    csrf_token = _csrf_token(client)
+    return client.post(
+        "/login",
+        data={
+            "username": username,
+            "password": "StrongPass!123",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+
 def _configure_gym(client: TestClient) -> None:
     response = _post(
         client,
@@ -186,14 +199,7 @@ def test_deleted_members_and_restore_are_tenant_scoped(client, db):
     assert "Second Gym Deleted" not in response.text
 
     with TestClient(app, base_url="https://testserver") as client_b:
-        response = client_b.post(
-            "/login",
-            data={
-                "username": "second-route-owner",
-                "password": "StrongPass!123",
-            },
-            follow_redirects=False,
-        )
+        response = _login(client_b, "second-route-owner")
         assert response.status_code == 303
         assert "Second Gym Deleted" in client_b.get("/members/deleted").text
 

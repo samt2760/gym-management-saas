@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models import Gym, Member, Payment
-from app.models.user import User, hash_password
+from app.models.user import User, UserSession, hash_password
 
 
 def _create_gym(db, name: str = "Primary Gym", currency: str = "GHS") -> Gym:
@@ -89,7 +89,37 @@ def _post(
     )
 
 
+def _login(client, username: str = "admin"):
+    csrf_token = _csrf_token(client)
+    return client.post(
+        "/login",
+        data={
+            "username": username,
+            "password": "StrongPass!123",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+
 def test_login_authenticates_and_sets_secure_session(public_client, db):
+    _create_user(db)
+
+    response = _login(public_client)
+
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers["location"] == "/dashboard"
+    assert "session" in response.headers["set-cookie"].lower()
+    assert "httponly" in response.headers["set-cookie"].lower()
+    assert "max-age=28800" in response.headers["set-cookie"].lower()
+    assert "samesite=lax" in response.headers["set-cookie"].lower()
+    assert "secure" not in response.headers["set-cookie"].lower()
+
+
+def test_login_rejects_missing_csrf_token_without_authenticating(
+    public_client,
+    db,
+):
     _create_user(db)
 
     response = public_client.post(
@@ -101,11 +131,57 @@ def test_login_authenticates_and_sets_secure_session(public_client, db):
         follow_redirects=False,
     )
 
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert db.query(UserSession).count() == 0
+
+
+def test_session_cookie_uses_configured_runtime_settings(
+    public_client,
+    db,
+    monkeypatch,
+):
+    _create_user(db)
+    monkeypatch.setattr("app.auth.SESSION_COOKIE_NAME", "configured-session")
+    monkeypatch.setattr("app.auth.SESSION_COOKIE_SECURE", True)
+    monkeypatch.setattr("app.auth.SESSION_COOKIE_SAME_SITE", "strict")
+    monkeypatch.setattr("app.auth.SESSION_TTL_SECONDS", 123)
+
+    response = _login(public_client)
+    cookie = response.headers["set-cookie"].lower()
+
     assert response.status_code == status.HTTP_303_SEE_OTHER
-    assert response.headers["location"] == "/dashboard"
-    assert "session" in response.headers["set-cookie"].lower()
-    assert "httponly" in response.headers["set-cookie"].lower()
-    assert "secure" in response.headers["set-cookie"].lower()
+    assert "configured-session=" in cookie
+    assert "max-age=123" in cookie
+    assert "secure" in cookie
+    assert "samesite=strict" in cookie
+
+
+def test_expired_session_cannot_authenticate(public_client, db):
+    user = _create_user(db)
+    response = _login(public_client)
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    session = db.query(UserSession).filter(UserSession.user_id == user.id).one()
+    session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    db.commit()
+
+    response = public_client.get("/dashboard", follow_redirects=False)
+
+    assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
+
+
+def test_revoked_session_cannot_authenticate(public_client, db):
+    user = _create_user(db)
+    response = _login(public_client)
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    session = db.query(UserSession).filter(UserSession.user_id == user.id).one()
+    session.revoked_at = datetime.now(UTC)
+    db.commit()
+
+    response = public_client.get("/dashboard", follow_redirects=False)
+
+    assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
 
 
 def test_login_rejects_invalid_credentials_without_disclosing_user_presence(
@@ -114,11 +190,13 @@ def test_login_rejects_invalid_credentials_without_disclosing_user_presence(
 ):
     _create_user(db)
 
+    csrf_token = _csrf_token(public_client)
     response = public_client.post(
         "/login",
         data={
             "username": "admin",
             "password": "wrong-password",
+            "csrf_token": csrf_token,
         },
         follow_redirects=False,
     )
@@ -169,14 +247,7 @@ def test_password_change_requires_current_password_and_updates_hash(
 def test_logout_clears_session(public_client, db):
     _create_user(db)
 
-    response = public_client.post(
-        "/login",
-        data={
-            "username": "admin",
-            "password": "StrongPass!123",
-        },
-        follow_redirects=False,
-    )
+    response = _login(public_client)
 
     assert response.status_code == status.HTTP_303_SEE_OTHER
 
@@ -214,14 +285,7 @@ def test_users_without_members_delete_permission_cannot_delete_members(
         base_url="https://testserver",
     ) as owner_client:
 
-        response = owner_client.post(
-            "/login",
-            data={
-                "username": "member-owner",
-                "password": "StrongPass!123",
-            },
-            follow_redirects=False,
-        )
+        response = _login(owner_client, "member-owner")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
 
@@ -259,14 +323,7 @@ def test_users_without_members_delete_permission_cannot_delete_members(
         base_url="https://testserver",
     ) as receptionist_client:
 
-        response = receptionist_client.post(
-            "/login",
-            data={
-                "username": "receptionist",
-                "password": "StrongPass!123",
-            },
-            follow_redirects=False,
-        )
+        response = _login(receptionist_client, "receptionist")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
 
@@ -293,14 +350,7 @@ def test_users_without_settings_edit_permission_cannot_update_gym_settings(
         role="TRAINER",
     )
 
-    response = public_client.post(
-        "/login",
-        data={
-            "username": "trainer",
-            "password": "StrongPass!123",
-        },
-        follow_redirects=False,
-    )
+    response = _login(public_client, "trainer")
 
     assert response.status_code == status.HTTP_303_SEE_OTHER
 
@@ -378,14 +428,7 @@ def test_gym_a_user_cannot_access_gym_b_member_or_payment(
         base_url="https://testserver",
     ) as gym_a_client:
 
-        response = gym_a_client.post(
-            "/login",
-            data={
-                "username": "gym_a_owner",
-                "password": "StrongPass!123",
-            },
-            follow_redirects=False,
-        )
+        response = _login(gym_a_client, "gym_a_owner")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
 

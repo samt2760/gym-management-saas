@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 from app.auth import (
     _hash_secret,
     authenticate_user,
+    clear_session_cookie,
     create_password_reset_token,
     create_session,
     is_login_allowed,
     require_auth,
     resolve_reset_token,
     revoke_all_user_sessions,
+    set_session_cookie,
 )
 from app.core.config import PASSWORD_MIN_LENGTH, SESSION_COOKIE_NAME
 from app.models.user import User, UserSession, hash_password, verify_password
@@ -150,18 +152,7 @@ def login(
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=token,
-        httponly=True,
-        secure=(
-            request.url.hostname
-            not in {"127.0.0.1", "localhost"}
-        ),
-        samesite="lax",
-        max_age=60 * 60 * 8,
-        path="/",
-    )
+    set_session_cookie(response, token)
 
     return response
 
@@ -196,10 +187,7 @@ def logout(
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
-    response.delete_cookie(
-        SESSION_COOKIE_NAME,
-        path="/",
-    )
+    clear_session_cookie(response)
 
     return response
 
