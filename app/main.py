@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from urllib.parse import parse_qs, quote
 
@@ -20,6 +21,8 @@ from app.web import (
     create_csrf_token,
     verify_csrf_token,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_allowed_hosts() -> list[str]:
@@ -266,6 +269,8 @@ def create_app() -> FastAPI:
             }
 
         except Exception:
+            logger.exception("Health check database failure")
+
             return JSONResponse(
                 {
                     "status": "error",
