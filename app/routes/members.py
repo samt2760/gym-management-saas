@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_auth, require_permission
 from app.models import Gym, Member, Payment, User
+from app.services.audit_service import record_audit
 from app.services.membership_service import (
     MembershipService,
     registration_due_date,
@@ -92,6 +93,17 @@ def create_member(
         )
 
         db.add(registration)
+        record_audit(
+            db, gym_id=gym.id, actor=user, action="member.created",
+            resource_type="member", resource_id=member.id,
+            details={"source": "registration"},
+        )
+        db.flush()
+        record_audit(
+            db, gym_id=gym.id, actor=user, action="payment.created",
+            resource_type="payment", resource_id=registration.id,
+            details={"payment_type": "Registration", "amount_minor": registration.amount},
+        )
         db.commit()
 
     except Exception:
@@ -267,6 +279,12 @@ def create_existing_member(
         status="Active" if payment_due_date >= today else "Expired",
     )
     db.add(member)
+    db.flush()
+    record_audit(
+        db, gym_id=user.gym_id, actor=user, action="member.created",
+        resource_type="member", resource_id=member.id,
+        details={"source": "existing_member"},
+    )
     db.commit()
     db.refresh(member)
 
@@ -301,8 +319,10 @@ def restore_member(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.delete")),
 ):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if member is None or member.gym_id != user.gym_id:
+    member = db.query(Member).filter(
+        Member.id == member_id, Member.gym_id == user.gym_id
+    ).first()
+    if member is None:
         raise HTTPException(status_code=403, detail="Access denied.")
     if member.deleted_at is None:
         raise HTTPException(status_code=404, detail="Deleted member not found.")
@@ -312,6 +332,10 @@ def restore_member(
         "Active"
         if member.payment_due_date >= datetime.now(UTC).date()
         else "Expired"
+    )
+    record_audit(
+        db, gym_id=user.gym_id, actor=user, action="member.restored",
+        resource_type="member", resource_id=member.id,
     )
     db.commit()
     return RedirectResponse(url="/members", status_code=303)
@@ -458,6 +482,10 @@ def update_member(
         else "Expired"
     )
 
+    record_audit(
+        db, gym_id=user.gym_id, actor=user, action="member.updated",
+        resource_type="member", resource_id=member.id,
+    )
     db.commit()
 
     return RedirectResponse(
@@ -472,13 +500,19 @@ def delete_member(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.delete")),
 ):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if member is None or member.gym_id != user.gym_id:
+    member = db.query(Member).filter(
+        Member.id == member_id, Member.gym_id == user.gym_id
+    ).first()
+    if member is None:
         raise HTTPException(status_code=403, detail="Access denied.")
     if member.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Member not found.")
 
     member.deleted_at = datetime.now(UTC)
+    record_audit(
+        db, gym_id=user.gym_id, actor=user, action="member.deleted",
+        resource_type="member", resource_id=member.id,
+    )
     db.commit()
 
     return RedirectResponse(
@@ -507,6 +541,7 @@ def renew_membership(
             amount=amount,
             idempotency_key=key,
             payment_date=datetime.now(UTC).date(),
+            actor=user,
         )
 
     except ValueError as exc:

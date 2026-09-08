@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_permission
 from app.models import Gym, User
+from app.services.audit_service import record_audit
 from app.web import get_db, templates
 
 router = APIRouter()
@@ -63,6 +64,15 @@ def update_gym_settings(
     gym.registration_fee = registration_fee
     gym.monthly_fee = monthly_fee
 
+    record_audit(
+        db,
+        gym_id=gym.id,
+        actor=user,
+        action="gym.settings_updated",
+        resource_type="gym",
+        resource_id=gym.id,
+        details={"currency": gym.currency, "monthly_fee_minor": gym.monthly_fee},
+    )
     db.commit()
 
     return RedirectResponse(

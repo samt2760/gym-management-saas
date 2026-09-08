@@ -9,7 +9,8 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Gym, Member, Payment
+from app.models import Gym, Member, Payment, User
+from app.services.audit_service import record_audit
 
 
 def _utc_today() -> date:
@@ -185,6 +186,7 @@ class MembershipService:
         amount: int,
         idempotency_key: str,
         payment_date: date | None = None,
+        actor: User | None = None,
     ) -> tuple[Payment, bool]:
         """Atomically apply a retry-safe renewal for one tenant member."""
         existing = (
@@ -252,8 +254,27 @@ class MembershipService:
             )
             payment.idempotency_key = idempotency_key
             db.add(payment)
-            # Flush first: an insert failure rolls back the due-date update too.
+            # Assign the payment ID before creating its linked audit record.
+            # A flush failure rolls back the entitlement and both audit events.
             db.flush()
+            record_audit(
+                db,
+                gym_id=gym_id,
+                actor=actor,
+                action="membership.renewed",
+                resource_type="member",
+                resource_id=member.id,
+                details={"months_paid": amount // gym.monthly_fee},
+            )
+            record_audit(
+                db,
+                gym_id=gym_id,
+                actor=actor,
+                action="payment.created",
+                resource_type="payment",
+                resource_id=payment.id,
+                details={"payment_type": "Renewal", "amount_minor": amount},
+            )
             db.commit()
             db.refresh(payment)
             return payment, False

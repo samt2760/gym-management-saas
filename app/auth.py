@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from collections import OrderedDict
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
@@ -175,7 +174,9 @@ def authenticate_user(
     return user
 
 
-def create_session(db: Session, user: User, request: Request) -> str:
+def create_session(
+    db: Session, user: User, request: Request, *, commit: bool = True
+) -> str:
     token = secrets.token_urlsafe(32)
     session = UserSession(
         user_id=user.id,
@@ -185,7 +186,8 @@ def create_session(db: Session, user: User, request: Request) -> str:
         ip_address=request.client.host if request.client else None,
     )
     db.add(session)
-    db.commit()
+    if commit:
+        db.commit()
     return token
 
 
@@ -209,13 +211,16 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
-def revoke_all_user_sessions(db: Session, user_id: int) -> None:
+def revoke_all_user_sessions(
+    db: Session, user_id: int, *, commit: bool = True
+) -> None:
     now = _now_utc()
     sessions = db.query(UserSession).filter(
         UserSession.user_id == user_id, UserSession.revoked_at.is_(None)).all()
     for session in sessions:
         session.revoked_at = now
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def _prune_reset_attempts(attempts: deque[datetime], now: datetime) -> None:

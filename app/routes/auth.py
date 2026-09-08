@@ -14,8 +14,8 @@ from app.auth import (
     clear_session_cookie,
     create_password_reset_token,
     create_session,
-    is_password_reset_allowed,
     is_login_allowed,
+    is_password_reset_allowed,
     require_auth,
     resolve_reset_token,
     revoke_all_user_sessions,
@@ -23,6 +23,7 @@ from app.auth import (
 )
 from app.core.config import PASSWORD_MIN_LENGTH, SESSION_COOKIE_NAME
 from app.models.user import User, UserSession, hash_password, verify_password
+from app.services.audit_service import record_audit
 from app.services.password_reset_delivery import (
     PasswordResetMessage,
     get_password_reset_delivery,
@@ -152,7 +153,17 @@ def login(
         db,
         user,
         request,
+        commit=False,
     )
+    record_audit(
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="auth.login_succeeded",
+        resource_type="user",
+        resource_id=user.id,
+    )
+    db.commit()
 
     response = RedirectResponse(
         url=_safe_next_url(next),
@@ -187,6 +198,14 @@ def logout(
 
         if session is not None:
             session.revoked_at = datetime.now(UTC)
+            record_audit(
+                db,
+                gym_id=user.gym_id,
+                actor=user,
+                action="auth.logout",
+                resource_type="user_session",
+                resource_id=session.id,
+            )
             db.commit()
 
     response = RedirectResponse(
@@ -237,6 +256,15 @@ def change_password(
     revoke_all_user_sessions(
         db,
         user.id,
+        commit=False,
+    )
+    record_audit(
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="auth.password_changed",
+        resource_type="user",
+        resource_id=user.id,
     )
 
     db.commit()
@@ -371,7 +399,15 @@ def reset_password(
     now = datetime.now(UTC)
     user.password_hash = hash_password(new_password)
     reset.used_at = now
-    revoke_all_user_sessions(db, user.id)
+    revoke_all_user_sessions(db, user.id, commit=False)
+    record_audit(
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="auth.password_reset_succeeded",
+        resource_type="user",
+        resource_id=user.id,
+    )
     db.commit()
     logger.info("Password reset completed")
 
