@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -365,6 +366,7 @@ def member_details(
             "member": member,
             "payments": payments,
             "membership_fee": gym.monthly_fee,
+            "renewal_idempotency_key": str(uuid4()),
             "gym": gym,
             "current_user": user,
         },
@@ -489,46 +491,29 @@ def delete_member(
 def renew_membership(
     member_id: int,
     amount: int = Form(...),
+    idempotency_key: str | None = Form(None),
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("payments.create")),
 ):
-    member = (
-        db.query(Member)
-        .filter(
-            Member.id == member_id,
-            Member.gym_id == user.gym_id,
-            Member.deleted_at.is_(None),
-        )
-        .first()
-    )
-    if member is None:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied.",
-        )
-
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    key = (idempotency_key or "").strip() or str(uuid4())
+    if len(key) > 128:
+        raise HTTPException(status_code=400, detail="Invalid idempotency key.")
 
     try:
-        payment = MembershipService.renew_membership(
-            gym,
-            member,
-            amount,
-            payment_date=datetime.now(UTC).date()
+        MembershipService.renew_membership_transaction(
+            db,
+            gym_id=user.gym_id,
+            member_id=member_id,
+            amount=amount,
+            idempotency_key=key,
+            payment_date=datetime.now(UTC).date(),
         )
 
-        db.add(payment)
-        db.commit()
-
     except ValueError as exc:
-        db.rollback()
         return {"error": str(exc)}
 
-    except Exception:
-        db.rollback()
-        raise
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     return RedirectResponse(
         url=f"/members/{member_id}",

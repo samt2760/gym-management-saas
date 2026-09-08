@@ -332,6 +332,7 @@ Member Details
 
     <form method="post" action="/members/{{ member.id }}/renew" class="renew-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <input type="hidden" name="idempotency_key" value="{{ renewal_idempotency_key }}">
         <div class="renew-field">
 
             <label for="amount">

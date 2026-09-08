@@ -45,7 +45,8 @@ def payments_page(
         payment_groups[month_key]["payments"].append(
             payment)  # type: ignore[union-attr]
         # type: ignore[operator]
-        payment_groups[month_key]["total"] += payment.amount
+        if payment.status == "Completed":
+            payment_groups[month_key]["total"] += payment.amount
 
     return templates.TemplateResponse(
         request=request,

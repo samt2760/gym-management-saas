@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from datetime import UTC, date, datetime
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Gym, Member, Payment
@@ -174,6 +175,113 @@ class MembershipService:
             payment_type="Renewal",
         )
         return payment
+
+    @staticmethod
+    def renew_membership_transaction(
+        db: Session,
+        *,
+        gym_id: int,
+        member_id: int,
+        amount: int,
+        idempotency_key: str,
+        payment_date: date | None = None,
+    ) -> tuple[Payment, bool]:
+        """Atomically apply a retry-safe renewal for one tenant member."""
+        existing = (
+            db.query(Payment)
+            .filter(
+                Payment.gym_id == gym_id,
+                Payment.idempotency_key == idempotency_key,
+            )
+            .first()
+        )
+        if existing is not None:
+            if (
+                existing.member_id != member_id
+                or existing.amount != amount
+                or existing.payment_type != "Renewal"
+            ):
+                raise ValueError(
+                    "Idempotency key was already used for a different renewal."
+                )
+            return existing, True
+
+        try:
+            # PostgreSQL locks only this member. SQLite safely ignores the
+            # clause while retaining the unique-key idempotency guarantee.
+            member = (
+                db.query(Member)
+                .filter(
+                    Member.id == member_id,
+                    Member.gym_id == gym_id,
+                    Member.deleted_at.is_(None),
+                )
+                .with_for_update()
+                .first()
+            )
+            if member is None:
+                raise PermissionError("Access denied.")
+
+            # Recheck after acquiring the lock for a request that waited.
+            existing = (
+                db.query(Payment)
+                .filter(
+                    Payment.gym_id == gym_id,
+                    Payment.idempotency_key == idempotency_key,
+                )
+                .first()
+            )
+            if existing is not None:
+                if (
+                    existing.member_id != member_id
+                    or existing.amount != amount
+                    or existing.payment_type != "Renewal"
+                ):
+                    raise ValueError(
+                        "Idempotency key was already used for a different renewal."
+                    )
+                db.commit()
+                return existing, True
+
+            gym = db.query(Gym).filter(Gym.id == gym_id).first()
+            if gym is None:
+                raise PermissionError("Access denied.")
+
+            payment = MembershipService.renew_membership(
+                gym, member, amount, payment_date=payment_date
+            )
+            payment.idempotency_key = idempotency_key
+            db.add(payment)
+            # Flush first: an insert failure rolls back the due-date update too.
+            db.flush()
+            db.commit()
+            db.refresh(payment)
+            return payment, False
+        except IntegrityError:
+            db.rollback()
+            # A competing request may have won the database unique-key race.
+            existing = (
+                db.query(Payment)
+                .filter(
+                    Payment.gym_id == gym_id,
+                    Payment.idempotency_key == idempotency_key,
+                )
+                .first()
+            )
+            if existing is not None:
+                if (
+                    existing.member_id != member_id
+                    or existing.amount != amount
+                    or existing.payment_type != "Renewal"
+                ):
+                    raise ValueError(
+                        "Idempotency key was already used for a different renewal."
+                    )
+                return existing, True
+            raise
+        except Exception:
+            db.rollback()
+            raise
 
     @staticmethod
     def freeze_membership(member: Member) -> Member:

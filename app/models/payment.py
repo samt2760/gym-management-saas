@@ -22,6 +22,10 @@ class Payment(TimestampMixin, Base):
             name="ck_payments_amount_nonnegative",
         ),
         CheckConstraint(
+            "status IN ('Completed', 'Voided')",
+            name="ck_payments_valid_status",
+        ),
+        CheckConstraint(
             "membership_type = 'Monthly'",
             name="ck_payments_monthly_membership",
         ),
@@ -38,6 +42,12 @@ class Payment(TimestampMixin, Base):
             "ix_payments_member_payment_date",
             "member_id",
             "payment_date",
+        ),
+        Index(
+            "uq_payments_gym_idempotency_key",
+            "gym_id",
+            "idempotency_key",
+            unique=True,
         ),
     )
 
@@ -98,6 +108,18 @@ class Payment(TimestampMixin, Base):
         nullable=False,
         default="Renewal",
     )
+
+    # Financial rows remain in history; corrections use an explicit state.
+    status = Column(
+        String(16),
+        nullable=False,
+        default="Completed",
+        server_default="Completed",
+    )
+
+    # Only retry-sensitive operations set this. Legacy and registration rows
+    # remain valid with NULL keys.
+    idempotency_key = Column(String(128), nullable=True)
 
     gym = relationship(
         "Gym",
