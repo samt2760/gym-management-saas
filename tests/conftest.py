@@ -20,15 +20,11 @@ from app.main import app
 @pytest.fixture(autouse=True)
 def reset_database() -> Generator[None]:
     """Give every test a clean schema without touching the local gym.db."""
-    from app.auth import _login_attempts
-
-    _login_attempts.clear()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     try:
         yield
     finally:
-        _login_attempts.clear()
         Base.metadata.drop_all(bind=engine)
 
 

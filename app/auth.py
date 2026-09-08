@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from collections import OrderedDict, defaultdict, deque
+from collections import OrderedDict, deque
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
@@ -11,8 +11,6 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import (
-    LOGIN_RATE_LIMIT_SECONDS,
-    MAX_LOGIN_ATTEMPTS,
     PASSWORD_RESET_MAX_REQUESTS,
     PASSWORD_RESET_RATE_LIMIT_SECONDS,
     PASSWORD_RESET_TOKEN_TTL_SECONDS,
@@ -32,9 +30,6 @@ from app.models.user import (
 )
 from app.web import get_db
 
-RATE_LIMIT_WINDOW = timedelta(seconds=LOGIN_RATE_LIMIT_SECONDS)
-
-_login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
 _unknown_reset_attempts: OrderedDict[str, deque[datetime]] = OrderedDict()
 _MAX_UNKNOWN_RESET_KEYS = 10000
 
@@ -55,21 +50,10 @@ def _hash_secret(value: str) -> str:
     return hashlib.sha256(f"{SECRET_KEY}:{value}".encode()).hexdigest()
 
 
-def _rate_limit_key(request: Request, email: str) -> str:
+def login_throttle_key(request: Request, identifier: str) -> str:
+    """Hash the normalized identifier and direct client address for storage."""
     client_ip = request.client.host if request.client else "unknown"
-    return f"{client_ip}:{email.strip().lower()}"
-
-
-def is_login_allowed(request: Request, email: str) -> bool:
-    key = _rate_limit_key(request, email)
-    attempts = _login_attempts[key]
-    cutoff = _now_utc() - RATE_LIMIT_WINDOW
-    while attempts and attempts[0] < cutoff:
-        attempts.popleft()
-    if len(attempts) >= MAX_LOGIN_ATTEMPTS:
-        return False
-    attempts.append(_now_utc())
-    return True
+    return _hash_secret(f"login-throttle:{client_ip}:{identifier.strip().lower()}")
 
 
 def get_authenticated_user(request: Request, db: Session) -> User:
@@ -155,6 +139,8 @@ def authenticate_user(
     db: Session,
     email: str,
     password: str,
+    *,
+    commit: bool = True,
 ) -> User | None:
     user = (
         db.query(User)
@@ -169,7 +155,8 @@ def authenticate_user(
         return None
 
     user.last_login = _now_utc()
-    db.commit()
+    if commit:
+        db.commit()
 
     return user
 

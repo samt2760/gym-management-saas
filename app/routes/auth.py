@@ -14,8 +14,8 @@ from app.auth import (
     clear_session_cookie,
     create_password_reset_token,
     create_session,
-    is_login_allowed,
     is_password_reset_allowed,
+    login_throttle_key,
     require_auth,
     resolve_reset_token,
     revoke_all_user_sessions,
@@ -24,6 +24,11 @@ from app.auth import (
 from app.core.config import PASSWORD_MIN_LENGTH, SESSION_COOKIE_NAME
 from app.models.user import User, UserSession, hash_password, verify_password
 from app.services.audit_service import record_audit
+from app.services.login_throttle_service import (
+    acquire_login_throttle,
+    clear_login_throttle,
+    record_failed_login,
+)
 from app.services.password_reset_delivery import (
     PasswordResetMessage,
     get_password_reset_delivery,
@@ -106,17 +111,6 @@ def login(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    if not is_login_allowed(request, identifier):
-        return JSONResponse(
-            {
-                "detail": (
-                    "Too many login attempts. "
-                    "Please try again later."
-                )
-            },
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        )
-
     # authenticate_user() currently authenticates by email.
     # If the caller supplied a username, resolve it to the
     # user's email first.
@@ -134,14 +128,28 @@ def login(
         if matched_user is not None:
             authentication_email = matched_user.email
 
+    throttle = acquire_login_throttle(
+        db,
+        key_hash=login_throttle_key(request, authentication_email),
+        now=datetime.now(UTC),
+    )
+    if throttle is None:
+        logger.warning("Login attempt throttled")
+        return JSONResponse(
+            {"detail": "Too many login attempts. Please try again later."},
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     user = authenticate_user(
         request,
         db,
         authentication_email,
         password,
+        commit=False,
     )
 
     if user is None:
+        record_failed_login(db, throttle, datetime.now(UTC))
         return JSONResponse(
             {
                 "detail": "Invalid email or password."
@@ -155,6 +163,7 @@ def login(
         request,
         commit=False,
     )
+    clear_login_throttle(db, throttle)
     record_audit(
         db,
         gym_id=user.gym_id,
