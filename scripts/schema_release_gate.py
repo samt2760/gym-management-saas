@@ -15,12 +15,18 @@ if __package__ in {None, ""}:
 
 from scripts import postgres_backup
 
-EXPECTED_HEAD = "0007_login_throttles"
+EXPECTED_HEAD = "0008_payment_legacy_association"
+EXPECTED_START = "0004_align_authentication_token_columns"
 REQUIRED_TABLES = {
     "alembic_version", "gyms", "members", "payments", "users",
     "user_sessions", "password_reset_tokens", "audit_logs", "login_throttles",
+    "legacy_member_records",
 }
-PAYMENT_9_FACTS = "9|1||saas|200|GHS|2026-08-28|Registration"
+PAYMENT_9_BEFORE_FACTS = "9|1||saas|200|GHS|2026-08-28|Registration"
+PAYMENT_9_AFTER_FACTS = (
+    "9|1||saas|200|GHS|2026-08-28|Registration|"
+    "ARCHIVED_LEGACY_MEMBER|UNLINKED_HISTORICAL_PAYMENT|legacy-payment-9|1"
+)
 
 
 def _release_image_command(database_name: str, *command: str) -> list[str]:
@@ -93,9 +99,10 @@ def _assert_pre_migration_state(database_name: str, expected_start: str) -> dict
         raise postgres_backup.RecoveryError(
             f"Expected restored revision {expected_start}, found {revision or 'none'}."
         )
-    postgres_backup._verify_documented_legacy_unlinked_payments(
-        postgres_backup._query_database(database_name, postgres_backup.LEGACY_UNLINKED_PAYMENTS_QUERY)
+    legacy_rows = postgres_backup._query_database(
+        database_name, postgres_backup.LEGACY_UNLINKED_PAYMENTS_QUERY
     )
+    postgres_backup._verify_documented_legacy_unlinked_payments(legacy_rows)
     return postgres_backup._parse_checks(
         postgres_backup._query_database(database_name, postgres_backup.TABLE_COUNT_QUERY)
     )
@@ -117,32 +124,71 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
         SELECT column_name FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'payments';
     """).splitlines())
-    if not {"status", "idempotency_key"} <= payment_columns:
+    if not {"status", "idempotency_key", "legacy_member_record_id"} <= payment_columns:
         raise postgres_backup.RecoveryError("Migrated payments table is missing required columns.")
     constraints = set(postgres_backup._query_database(database_name, """
         SELECT conname FROM pg_constraint
         WHERE conrelid IN ('payments'::regclass, 'login_throttles'::regclass);
     """).splitlines())
-    if not {"ck_payments_valid_status", "uq_login_throttles_key_hash"} <= constraints:
+    if not {
+        "ck_payments_valid_status", "uq_login_throttles_key_hash",
+        "ck_payments_exactly_one_association",
+    } <= constraints:
         raise postgres_backup.RecoveryError("Migrated database is missing required constraints.")
     indexes = set(postgres_backup._query_database(database_name, """
         SELECT indexname FROM pg_indexes
         WHERE schemaname = 'public'
-          AND tablename IN ('payments', 'audit_logs', 'login_throttles');
+          AND tablename IN (
+              'payments', 'audit_logs', 'login_throttles', 'legacy_member_records'
+          );
     """).splitlines())
     required_indexes = {
         "uq_payments_gym_idempotency_key",
         "ix_audit_logs_gym_created_at",
         "ix_login_throttles_last_attempt_at",
+        "ix_legacy_member_records_gym_id",
+        "ix_payments_legacy_member_record_id",
     }
     if not required_indexes <= indexes:
         raise postgres_backup.RecoveryError("Migrated database is missing required indexes.")
-    payment = postgres_backup._query_database(database_name, """
-        SELECT id, gym_id, member_id, member_name, amount, currency, payment_date, payment_type
-        FROM payments WHERE id = 9;
+    foreign_keys = set(postgres_backup._query_database(database_name, """
+        SELECT conname FROM pg_constraint
+        WHERE conrelid IN ('payments'::regclass, 'legacy_member_records'::regclass)
+          AND contype = 'f';
+    """).splitlines())
+    required_foreign_keys = {
+        "fk_payments_gym_member",
+        "fk_payments_gym_legacy_member_record",
+        "fk_legacy_member_records_gym_id_gyms",
+        "fk_legacy_member_records_gym_user",
+    }
+    if not required_foreign_keys <= foreign_keys:
+        raise postgres_backup.RecoveryError("Migrated database is missing tenant-safe foreign keys.")
+    validated = postgres_backup._query_database(database_name, """
+        SELECT convalidated FROM pg_constraint
+        WHERE conrelid = 'payments'::regclass
+          AND conname = 'ck_payments_exactly_one_association';
     """)
-    if payment != PAYMENT_9_FACTS:
+    if validated != "t":
+        raise postgres_backup.RecoveryError("Payment association constraint is not validated.")
+    payment = postgres_backup._query_database(database_name, """
+        SELECT p.id, p.gym_id, p.member_id, p.member_name, p.amount, p.currency,
+               p.payment_date, p.payment_type, l.record_kind, l.reason_code,
+               l.source_reference, l.gym_id
+        FROM payments p
+        JOIN legacy_member_records l ON l.id = p.legacy_member_record_id
+        WHERE p.id = 9 AND p.member_id IS NULL AND l.gym_id = p.gym_id;
+    """)
+    if payment != PAYMENT_9_AFTER_FACTS:
         raise postgres_backup.RecoveryError("Migration altered documented payment 9 facts.")
+    legacy_record_count = postgres_backup._query_database(database_name, """
+        SELECT COUNT(*) FROM legacy_member_records
+        WHERE gym_id = 1 AND source_reference = 'legacy-payment-9'
+          AND record_kind = 'ARCHIVED_LEGACY_MEMBER'
+          AND reason_code = 'UNLINKED_HISTORICAL_PAYMENT';
+    """)
+    if legacy_record_count != "1":
+        raise postgres_backup.RecoveryError("Migration did not create exactly one payment 9 legacy record.")
     after = postgres_backup._parse_checks(
         postgres_backup._query_database(database_name, postgres_backup.TABLE_COUNT_QUERY)
     )
@@ -151,26 +197,29 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
             raise postgres_backup.RecoveryError(
                 f"Migration changed preserved row count for {table}."
             )
-    postgres_backup._verify_documented_legacy_unlinked_payments(
-        postgres_backup._query_database(database_name, postgres_backup.LEGACY_UNLINKED_PAYMENTS_QUERY)
-    )
+    postgres_backup._verify_payment_associations(database_name)
     postgres_backup._run(_release_image_command(
         database_name,
         "python", "-c",
-        "c=__import__('fastapi.testclient',fromlist=['TestClient']).TestClient;"
-        "a=__import__('app.main',fromlist=['app']).app;"
-        "c(a).get('/health').raise_for_status()",
+        "import threading, time, urllib.request, uvicorn; "
+        "from app.main import app; "
+        "server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=8000, log_level='warning')); "
+        "thread = threading.Thread(target=server.run, daemon=True); thread.start(); "
+        "time.sleep(1); "
+        "response = urllib.request.urlopen('http://127.0.0.1:8000/health'); "
+        "server.should_exit = True; thread.join(timeout=5); "
+        "assert response.status == 200",
     ))
 
 
-def rehearse(archive: Path, recovery_database: str, expected_start: str, *, drop: bool) -> None:
+def rehearse(archive: Path, recovery_database: str, *, drop: bool) -> None:
     """Restore, migrate, validate, and optionally drop one disposable database."""
     container_archive: str | None = None
     created = False
     try:
         container_archive = _restore_archive(archive, recovery_database)
         created = True
-        before = _assert_pre_migration_state(recovery_database, expected_start)
+        before = _assert_pre_migration_state(recovery_database, EXPECTED_START)
         postgres_backup._run(_release_image_command(
             recovery_database, "python", "-m", "alembic", "upgrade", "head"
         ))
@@ -188,7 +237,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", required=True, type=Path)
     parser.add_argument("--recovery-database", required=True)
-    parser.add_argument("--expected-start", required=True)
     parser.add_argument("--drop-recovery-database", action="store_true")
     return parser.parse_args()
 
@@ -196,7 +244,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        rehearse(args.archive, args.recovery_database, args.expected_start,
+        rehearse(args.archive, args.recovery_database,
                  drop=args.drop_recovery_database)
         print(f"Migration rehearsal passed: {EXPECTED_HEAD}")
         return 0

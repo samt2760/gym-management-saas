@@ -177,11 +177,8 @@ WHERE u.id IS NULL
 ORDER BY 1;
 """
 
-# This row predates member linkage enforcement.  It is retained verbatim for
-# accounting history until the reviewed archived-legacy-member migration is
-# deployed.  This is deliberately an exact, finite allow-list rather than a
-# general allowance for unlinked payments: any other NULL member_id fails a
-# recovery verification.
+# This exact row is permitted only in pre-Mission-9 backups.  Once the legacy
+# record schema exists, every payment must have exactly one tenant-safe link.
 DOCUMENTED_LEGACY_UNLINKED_PAYMENT = (
     "9", "1", "saas", "200", "GHS", "2026-08-28", "Monthly", "Registration",
 )
@@ -214,6 +211,54 @@ def _verify_documented_legacy_unlinked_payments(output: str) -> None:
         raise RecoveryError(
             "Recovered database contains an undocumented unlinked payment."
         )
+
+
+def _verify_payment_associations(database_name: str) -> None:
+    """Verify either the documented pre-release exception or the new invariant."""
+    schema_ready = _query_database(database_name, """
+        SELECT to_regclass('public.legacy_member_records') IS NOT NULL
+           AND EXISTS (
+               SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'payments'
+                 AND column_name = 'legacy_member_record_id'
+           );
+    """)
+    if schema_ready == "f":
+        _verify_documented_legacy_unlinked_payments(
+            _query_database(database_name, LEGACY_UNLINKED_PAYMENTS_QUERY)
+        )
+        return
+    if schema_ready != "t":
+        raise RecoveryError("Payment legacy-association schema is incomplete.")
+    invalid = _query_database(database_name, """
+        SELECT p.id
+        FROM payments p
+        LEFT JOIN members m ON m.id = p.member_id AND m.gym_id = p.gym_id
+        LEFT JOIN legacy_member_records l
+          ON l.id = p.legacy_member_record_id AND l.gym_id = p.gym_id
+        WHERE NOT (
+            (p.member_id IS NOT NULL AND p.legacy_member_record_id IS NULL AND m.id IS NOT NULL)
+            OR
+            (p.member_id IS NULL AND p.legacy_member_record_id IS NOT NULL AND l.id IS NOT NULL)
+        )
+        ORDER BY p.id;
+    """)
+    if invalid:
+        raise RecoveryError("Recovered database contains invalid payment associations.")
+    payment_9 = _query_database(database_name, """
+        SELECT p.id, p.gym_id, p.member_id, p.member_name, p.amount, p.currency,
+               p.payment_date, p.payment_type,
+               l.record_kind, l.reason_code, l.source_reference, l.gym_id
+        FROM payments p
+        JOIN legacy_member_records l ON l.id = p.legacy_member_record_id
+        WHERE p.id = 9;
+    """)
+    expected = (
+        "9|1||saas|200|GHS|2026-08-28|Registration|"
+        "ARCHIVED_LEGACY_MEMBER|UNLINKED_HISTORICAL_PAYMENT|legacy-payment-9|1"
+    )
+    if payment_9 != expected:
+        raise RecoveryError("Payment 9 legacy association or immutable facts are invalid.")
 
 
 def verify_restore(
@@ -256,8 +301,7 @@ def verify_restore(
             recovery_database, TABLE_COUNT_QUERY))
         integrity = _parse_checks(_query_database(
             recovery_database, INTEGRITY_QUERY))
-        _verify_documented_legacy_unlinked_payments(_query_database(
-            recovery_database, LEGACY_UNLINKED_PAYMENTS_QUERY))
+        _verify_payment_associations(recovery_database)
         invalid = {name: count for name, count in integrity.items() if count}
         if invalid:
             raise RecoveryError(
