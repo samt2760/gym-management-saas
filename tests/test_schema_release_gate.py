@@ -54,7 +54,7 @@ def test_rehearsal_stops_before_migration_for_an_unexpected_start_revision(monke
     monkeypatch.setattr(schema_release_gate.postgres_backup, "_run", lambda command: commands.append(tuple(command)))
 
     with pytest.raises(postgres_backup.RecoveryError, match="wrong revision"):
-        schema_release_gate.rehearse(archive, "gym_rehearsal", "0004", drop=False)
+        schema_release_gate.rehearse(archive, "gym_rehearsal", drop=False)
 
     assert not any("upgrade" in command for command in commands)
 
@@ -74,7 +74,7 @@ def test_rehearsal_stops_when_migration_command_fails(monkeypatch, tmp_path):
     monkeypatch.setattr(schema_release_gate, "_assert_post_migration_state", lambda *_: post_check.append(True))
 
     with pytest.raises(postgres_backup.RecoveryError, match="migration failed"):
-        schema_release_gate.rehearse(archive, "gym_rehearsal", "0004", drop=False)
+        schema_release_gate.rehearse(archive, "gym_rehearsal", drop=False)
 
     assert post_check == []
 
@@ -84,7 +84,7 @@ def test_post_migration_check_fails_when_required_schema_is_missing(monkeypatch)
         "\n".join(schema_release_gate.REQUIRED_TABLES - {"audit_logs"}),
     ])
     monkeypatch.setattr(
-        schema_release_gate, "_release_image_revision", lambda _: "0007_login_throttles"
+        schema_release_gate, "_release_image_revision", lambda _: "0008_payment_legacy_association"
     )
     monkeypatch.setattr(schema_release_gate.postgres_backup, "_query_database", lambda *_: next(responses))
 
@@ -95,16 +95,25 @@ def test_post_migration_check_fails_when_required_schema_is_missing(monkeypatch)
 def test_post_migration_check_rejects_changed_payment_nine(monkeypatch):
     responses = iter([
         "\n".join(schema_release_gate.REQUIRED_TABLES),
-        "status\nidempotency_key",
-        "ck_payments_valid_status\nuq_login_throttles_key_hash",
+        "status\nidempotency_key\nlegacy_member_record_id",
+        "ck_payments_valid_status\nuq_login_throttles_key_hash\nck_payments_exactly_one_association",
         "\n".join([
             "uq_payments_gym_idempotency_key",
             "ix_audit_logs_gym_created_at",
             "ix_login_throttles_last_attempt_at",
+            "ix_legacy_member_records_gym_id",
+            "ix_payments_legacy_member_record_id",
         ]),
-        "9|1||saas|201|GHS|2026-08-28|Registration",
+        "\n".join([
+            "fk_payments_gym_member",
+            "fk_payments_gym_legacy_member_record",
+            "fk_legacy_member_records_gym_id_gyms",
+            "fk_legacy_member_records_gym_user",
+        ]),
+        "t",
+        "9|1||saas|201|GHS|2026-08-28|Registration|ARCHIVED_LEGACY_MEMBER|UNLINKED_HISTORICAL_PAYMENT|legacy-payment-9|1",
     ])
-    monkeypatch.setattr(schema_release_gate, "_release_image_revision", lambda _: "0007_login_throttles")
+    monkeypatch.setattr(schema_release_gate, "_release_image_revision", lambda _: "0008_payment_legacy_association")
     monkeypatch.setattr(schema_release_gate.postgres_backup, "_query_database", lambda *_: next(responses))
 
     with pytest.raises(postgres_backup.RecoveryError, match="payment 9"):

@@ -5,7 +5,7 @@ from enum import Enum
 
 import bcrypt
 from pwdlib import PasswordHash
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -103,6 +103,9 @@ def verify_password(password: str, stored_hash: str) -> bool:
 
 class User(TimestampMixin, Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("gym_id", "id", name="uq_users_gym_id_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -170,6 +173,12 @@ class User(TimestampMixin, Base):
         "PasswordResetToken",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+    legacy_member_records = relationship(
+        "LegacyMemberRecord",
+        back_populates="created_by_user",
+        foreign_keys="LegacyMemberRecord.created_by_user_id",
     )
 
     def has_permission(self, permission: Permission | str) -> bool:

@@ -3,6 +3,7 @@ from sqlalchemy import (
     Column,
     Date,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -32,6 +33,25 @@ class Payment(TimestampMixin, Base):
         CheckConstraint(
             "payment_type IN ('Registration', 'Renewal')",
             name="ck_payments_valid_type",
+        ),
+        # Equivalent to the PostgreSQL num_nonnulls check in the release
+        # migration, while remaining executable in SQLite application tests.
+        CheckConstraint(
+            "(member_id IS NOT NULL AND legacy_member_record_id IS NULL) OR "
+            "(member_id IS NULL AND legacy_member_record_id IS NOT NULL)",
+            name="ck_payments_exactly_one_association",
+        ),
+        ForeignKeyConstraint(
+            ["gym_id", "member_id"],
+            ["members.gym_id", "members.id"],
+            name="fk_payments_gym_member",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["gym_id", "legacy_member_record_id"],
+            ["legacy_member_records.gym_id", "legacy_member_records.id"],
+            name="fk_payments_gym_legacy_member_record",
+            ondelete="RESTRICT",
         ),
         Index(
             "ix_payments_gym_payment_date",
@@ -76,6 +96,8 @@ class Payment(TimestampMixin, Base):
         ),
         nullable=True,
     )
+
+    legacy_member_record_id = Column(Integer, nullable=True)
 
     member_name = Column(
         String,
@@ -129,4 +151,15 @@ class Payment(TimestampMixin, Base):
     member = relationship(
         "Member",
         back_populates="payments",
+        foreign_keys=[member_id],
+    )
+
+    legacy_member_record = relationship(
+        "LegacyMemberRecord",
+        back_populates="payments",
+        primaryjoin=(
+            "and_(Payment.legacy_member_record_id == LegacyMemberRecord.id, "
+            "Payment.gym_id == LegacyMemberRecord.gym_id)"
+        ),
+        foreign_keys=[legacy_member_record_id],
     )

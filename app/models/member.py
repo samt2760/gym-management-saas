@@ -7,6 +7,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -24,6 +25,7 @@ class Member(TimestampMixin, Base):
         Index("ix_members_gym_due_date", "gym_id", "payment_due_date"),
         Index("ix_members_gym_full_name", "gym_id", "full_name"),
         Index("ix_members_gym_phone", "gym_id", "phone"),
+        UniqueConstraint("gym_id", "id", name="uq_members_gym_id_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -40,4 +42,8 @@ class Member(TimestampMixin, Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     gym = relationship("Gym", back_populates="members")
-    payments = relationship("Payment", back_populates="member")
+    payments = relationship(
+        "Payment",
+        back_populates="member",
+        foreign_keys="Payment.member_id",
+    )

@@ -20,4 +20,5 @@ class Gym(TimestampMixin, Base):
 
     members = relationship("Member", back_populates="gym")
     payments = relationship("Payment", back_populates="gym")
+    legacy_member_records = relationship("LegacyMemberRecord", back_populates="gym")
     users = relationship("User", back_populates="gym")

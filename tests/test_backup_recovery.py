@@ -82,6 +82,22 @@ def test_only_the_exact_documented_legacy_unlinked_payment_is_allowed():
         )
 
 
+def test_migrated_backup_verifies_explicit_payment_legacy_association(monkeypatch):
+    responses = iter([
+        "t",
+        "",
+        (
+            "9|1||saas|200|GHS|2026-08-28|Registration|"
+            "ARCHIVED_LEGACY_MEMBER|UNLINKED_HISTORICAL_PAYMENT|legacy-payment-9|1"
+        ),
+    ])
+    monkeypatch.setattr(
+        postgres_backup, "_query_database", lambda *_: next(responses)
+    )
+
+    postgres_backup._verify_payment_associations("gym_rehearsal")
+
+
 def test_backup_refuses_to_overwrite_existing_archive(tmp_path):
     archive = tmp_path / "existing.dump"
     archive.write_bytes(b"existing")
