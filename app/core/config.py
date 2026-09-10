@@ -28,7 +28,9 @@ if ENVIRONMENT == "production" and DATABASE_URL.startswith("sqlite"):
 
 SECRET_KEY = os.getenv("SESSION_SECRET")
 
-if not SECRET_KEY:
+if not SECRET_KEY or (
+    ENVIRONMENT == "production" and SECRET_KEY.startswith("replace-")
+):
     raise RuntimeError(
         "SESSION_SECRET environment variable is required. "
         "Set a strong random secret before starting the application."
@@ -44,6 +46,10 @@ SESSION_TTL_SECONDS = int(
         "SESSION_TTL_SECONDS",
         "28800",
     )
+)
+
+DATABASE_CONNECT_TIMEOUT_SECONDS = int(
+    os.getenv("DATABASE_CONNECT_TIMEOUT_SECONDS", "10")
 )
 
 SESSION_COOKIE_SECURE = (

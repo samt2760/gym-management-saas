@@ -6,11 +6,13 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.config import DATABASE_URL
+from app.core.config import DATABASE_CONNECT_TIMEOUT_SECONDS, DATABASE_URL
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith(
     "sqlite") else {}
-engine_options = {"connect_args": connect_args}
+engine_options = {"connect_args": connect_args, "pool_pre_ping": True}
+if not DATABASE_URL.startswith("sqlite"):
+    connect_args["connect_timeout"] = DATABASE_CONNECT_TIMEOUT_SECONDS
 # The shared in-memory URL is used by the isolated test suite. File-backed
 # SQLite and non-SQLite deployments retain normal SQLAlchemy pooling behavior.
 if DATABASE_URL == "sqlite://":

@@ -34,15 +34,14 @@ def _get_allowed_hosts() -> list[str]:
     """
     configured_hosts = os.getenv("ALLOWED_HOSTS")
 
-    if configured_hosts:
-        hosts = [
-            host.strip()
-            for host in configured_hosts.split(",")
-            if host.strip()
-        ]
-
-        if hosts:
+    if configured_hosts is not None:
+        hosts = [host.strip() for host in configured_hosts.split(",")]
+        if not any(not host for host in hosts) and not any(
+            "*" in host or "://" in host or "/" in host for host in hosts
+        ):
             return hosts
+        if ENVIRONMENT == "production":
+            raise RuntimeError("ALLOWED_HOSTS contains an invalid production host.")
 
     if ENVIRONMENT == "production":
         raise RuntimeError(
@@ -54,6 +53,28 @@ def _get_allowed_hosts() -> list[str]:
         "127.0.0.1",
         "testserver",
     ]
+
+
+def _apply_security_headers(response) -> None:
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; form-action 'self'; "
+        "frame-ancestors 'none'; object-src 'none'; connect-src 'self'; "
+        "img-src 'self' data:; font-src 'self'; script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'"
+    )
+    # Dynamic HTML and credential workflows must not be retained by browser
+    # history or intermediary caches. Static paths intentionally keep their
+    # normal cache behavior.
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    if ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
 
 
 def create_app() -> FastAPI:
@@ -147,7 +168,7 @@ def create_app() -> FastAPI:
                         max_age=60 * 60 * 8,
                         path="/",
                     )
-
+                    _apply_security_headers(response)
                     return response
 
             finally:
@@ -199,7 +220,7 @@ def create_app() -> FastAPI:
                     csrf_cookie,
                 )
             ):
-                return JSONResponse(
+                response = JSONResponse(
                     {
                         "detail": (
                             "Invalid or missing CSRF token."
@@ -207,6 +228,8 @@ def create_app() -> FastAPI:
                     },
                     status_code=403,
                 )
+                _apply_security_headers(response)
+                return response
 
             # Replay the request body for FastAPI.
             async def receive():
@@ -224,19 +247,8 @@ def create_app() -> FastAPI:
         # Security response headers
         # ---------------------------------------------------------
 
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=()"
-        )
-
-        # HSTS is appropriate when the application is configured
-        # to use secure cookies/HTTPS.
-        if SESSION_COOKIE_SECURE:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+        if not request.url.path.startswith("/static/"):
+            _apply_security_headers(response)
 
         # ---------------------------------------------------------
         # Set CSRF cookie if this is the first request

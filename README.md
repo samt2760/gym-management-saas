@@ -70,7 +70,11 @@ Do not use `docker compose down -v`; removing the volume would delete the local 
 ## Production precautions
 
 - Use PostgreSQL and a strong, externally managed `SESSION_SECRET` in production.
-- Set `ENVIRONMENT=production`, `ALLOWED_HOSTS`, `SESSION_COOKIE_SECURE=true`, and a production `DATABASE_URL`.
+- Set `ENVIRONMENT=production`, a non-placeholder `SESSION_SECRET`, `SESSION_COOKIE_SECURE=true`, a PostgreSQL `DATABASE_URL`, and explicit non-wildcard `ALLOWED_HOSTS`. Startup fails fast if these requirements are not met.
+- Terminate HTTPS before the application. The app sends HSTS only in production, uses secure HttpOnly session cookies, and sends CSP, anti-framing, MIME-sniffing, referrer, permissions, and no-store headers for dynamic pages. The current server-rendered templates use inline styles, so the CSP intentionally permits inline styles but does not permit inline scripts.
+- The container starts Uvicorn with forwarded headers disabled. This is the safe default because no trusted-proxy network is configured; do not enable forwarded headers until the proxy IP/network policy is explicitly defined and reviewed. Login throttling therefore uses the direct peer address.
+- `/health` is unauthenticated and performs a minimal database connectivity check. It is suitable for the included Docker healthcheck and returns only generic status values.
+- `DATABASE_CONNECT_TIMEOUT_SECONDS` configures the PostgreSQL connect timeout. Remote PostgreSQL TLS is deployment-specific: provide a suitable `sslmode`/certificate configuration in `DATABASE_URL` or the driver environment; do not place certificates in this repository.
 - Keep credentials out of Git, logs, images, and command output.
 - Terminate HTTPS in front of the application and use secure operational logging, backups, monitoring, and restore drills.
 - Run migrations as a reviewed deployment step, separately from application startup.

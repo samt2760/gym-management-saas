@@ -435,8 +435,7 @@ Member Details
         Their payment history is preserved.
     </p>
 
-    <form method="post" action="/members/{{ member.id }}/delete"
-        onsubmit="return confirm('Are you sure you want to delete this member?');">
+    <form method="post" action="/members/{{ member.id }}/delete">
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
 
