@@ -31,6 +31,8 @@ Thumbs.db
 # Database backups
 *_backup.sql
 *.dump
+backups/
+.pytest_tmp*/
 
 # Local databases
 *.db

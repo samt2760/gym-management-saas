@@ -57,6 +57,31 @@ Migrations are not run automatically when the application starts. For a deployme
 
 Never reset the database, downgrade migrations, or run destructive SQL as part of routine deployment. Review and test every migration before applying it to a production database.
 
+### Controlled schema release gate
+
+The current repository head is `0007_login_throttles`. Inspect the configured database and repository before a release:
+
+```powershell
+docker compose run --rm --no-deps web python -m alembic current
+python -m alembic heads
+```
+
+The currently deployed local database is intentionally still at `0004_align_authentication_token_columns`; pending migrations are `0005_payment_renewal_integrity`, `0006_audit_trail`, and `0007_login_throttles`. Do not run them against the live database until a rehearsal has passed.
+
+First create and retain a pre-deployment custom-format backup, then rehearse the exact release image and migration chain against a named disposable restore:
+
+```powershell
+python scripts/schema_release_gate.py `
+  --archive backups/gym-management-2026-09-10.dump `
+  --recovery-database gym_migration_rehearsal_20260910 `
+  --expected-start 0004_align_authentication_token_columns `
+  --drop-recovery-database
+```
+
+The rehearsal refuses the configured live database, verifies the archive and starting revision, runs `alembic upgrade head` only in the configured Compose release image against the disposable target, checks the resulting schema and preserved historical payment facts, and starts the application long enough to verify `/health`. Any failure is terminal for the release: retain the pre-migration backup, investigate, and restore into a separate recovery database if needed. Do not casually downgrade a production database and never use `docker compose down -v`.
+
+After a successful rehearsal, an authorized operator must run `python -m alembic upgrade head` exactly once as a separately reviewed migration job using the immutable release image and the confirmed live database URL. Verify `alembic current`, the required schema, and `/health` before routing new application instances. FastAPI startup never runs migrations automatically.
+
 ## Stopping services safely
 
 Stop containers without removing the PostgreSQL volume:
@@ -66,6 +91,33 @@ docker compose stop
 ```
 
 Do not use `docker compose down -v`; removing the volume would delete the local PostgreSQL data.
+
+## Backup and recovery
+
+Backups contain the current operational schema: `alembic_version`, `gyms`, `members`, `payments`, `users`, `user_sessions`, and `password_reset_tokens`. Store them outside the repository with access restricted to the operators who need recovery access; do not attach them to tickets or commit them. The `backups/` directory and `*.dump` archives are ignored by Git.
+
+With the `db` service healthy, create a PostgreSQL custom-format archive without stopping the application. The helper runs `pg_dump` inside the database container and reads its configured `POSTGRES_USER` and `POSTGRES_DB`; it never writes a password to the command line or archive name.
+
+```powershell
+python scripts/postgres_backup.py backup --output backups/gym-management-2026-09-10.dump
+```
+
+`pg_dump` success alone is not enough. Verify every backup by restoring it to an explicitly named, disposable database. The command refuses the configured live application database, validates that the archive is readable, restores it, checks counts for every current operational table, detects members without a gym and payments, sessions, or reset tokens without a corresponding parent record, and reports the restored Alembic revision.
+
+The current historical archive contains one documented pre-linkage exception: payment `9` has no `member_id`, while its immutable ledger facts remain `member_name=saas`, `200 GHS`, `2026-08-28`, and `Registration`. Recovery verification permits only that exact row (or no unlinked rows after a future approved repair); any additional or altered unlinked payment fails verification. It is not deleted, changed, counted as a normal member relationship, or treated as permission to create new unlinked payments. The planned archived-legacy-member migration remains the long-term repair.
+
+```powershell
+python scripts/postgres_backup.py verify-restore `
+  --archive backups/gym-management-2026-09-10.dump `
+  --recovery-database gym_recovery_20260910 `
+  --drop-recovery-database
+```
+
+The disposable database is created in the existing PostgreSQL server but is not the application database and does not replace, reset, or remove `postgres_data`. Omit `--drop-recovery-database` to inspect a failed recovery target manually; remove only the explicitly named disposable database after investigation.
+
+For a production recovery, first stop or otherwise prevent application writes, take and retain the failed-system backup, restore the selected archive into a clean recovery database, run the verification above, and validate representative sign-in, member, and payment flows before routing the application to it. A custom dump already includes its schema and data. Alembic remains the schema authority: verify the restored revision first; apply only the reviewed migrations needed to bring that recovered revision to the application release, rather than replaying migrations blindly. Restart the application and confirm `/health` returns `{"status":"ok","database":"ok"}`.
+
+Operational recommendations, not repository automation: schedule at least daily backups, retain several short-term restore points and periodic longer-term copies, and regularly perform a restore drill. Backup frequency determines the recovery point objective (RPO), while backup size, infrastructure, and the tested procedure determine recovery time objective (RTO); measure both in the target environment rather than assuming fixed values.
 
 ## Production precautions
 
