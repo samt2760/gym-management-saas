@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.auth import require_auth, require_permission
+from app.auth import require_permission
 from app.models import Gym, Member, Payment, User
 from app.services.audit_service import record_audit
 from app.services.membership_service import (
@@ -22,7 +22,7 @@ router = APIRouter()
 def register_page(
     request: Request,
     db: Session = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_permission("members.create")),
 ):
     gym = db.query(Gym).filter(
         Gym.id == user.gym_id

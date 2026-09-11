@@ -219,6 +219,29 @@ def test_authenticated_routes_require_login(public_client):
     assert response.headers["location"] == "/login?next=%2Fdashboard"
 
 
+def test_users_without_members_create_permission_cannot_view_registration_page(
+    public_client,
+    db,
+):
+    _create_user(
+        db,
+        username="trainer",
+        password="StrongPass!123",
+        role="TRAINER",
+    )
+
+    response = _login(public_client, "trainer")
+
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+
+    response = public_client.get("/register", follow_redirects=False)
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": "Permission denied."
+    }
+
+
 def test_password_change_requires_current_password_and_updates_hash(
     client,
     db,
