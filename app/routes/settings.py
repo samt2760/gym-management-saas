@@ -16,16 +16,14 @@ def gym_settings(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("settings.view")),
 ):
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     return templates.TemplateResponse(
         request=request,
         name="gym_settings.html",
         context={
             "gym": gym,
-                "current_user": user,
+            "current_user": user,
         },
     )
 
@@ -39,9 +37,7 @@ def update_gym_settings(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("settings.edit")),
 ):
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     if gym is None:
         raise HTTPException(
@@ -50,14 +46,10 @@ def update_gym_settings(
         )
 
     if registration_fee < 0:
-        return {
-            "error": "Registration fee cannot be negative"
-        }
+        return {"error": "Registration fee cannot be negative"}
 
     if monthly_fee <= 0:
-        return {
-            "error": "Monthly renewal fee must be greater than zero"
-        }
+        return {"error": "Monthly renewal fee must be greater than zero"}
 
     gym.name = name.strip() or "My Gym"
     gym.currency = currency.strip() or "GHS"

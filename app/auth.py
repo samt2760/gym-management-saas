@@ -21,6 +21,12 @@ from app.core.config import (
     SESSION_TTL_SECONDS,
 )
 from app.core.database import SessionLocal
+from app.core.tenant_context import (
+    TenantContextError,
+    bind_tenant_context_to_session,
+    establish_tenant_context,
+    stamp_tenant_context,
+)
 from app.models import Gym
 from app.models.user import (
     PasswordResetToken,
@@ -60,57 +66,85 @@ def get_authenticated_user(request: Request, db: Session) -> User:
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
 
     session = (
         db.query(UserSession)
-        .filter(UserSession.token_hash == _hash_secret(token), UserSession.revoked_at.is_(None))
+        .filter(
+            UserSession.token_hash == _hash_secret(token),
+            UserSession.revoked_at.is_(None),
+        )
         .first()
     )
     if session is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
 
     expires_at = _to_utc(session.expires_at)
     if expires_at is None or expires_at <= _now_utc():
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
 
-    user = db.query(User).filter(User.id == session.user_id,
-                                 User.status == "active").first()
+    user = (
+        db.query(User)
+        .filter(User.id == session.user_id, User.status == "active")
+        .first()
+    )
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
 
     request.state.user = user
     return user
 
 
 def require_auth(request: Request, db: Session = Depends(get_db)) -> User:
-    return get_authenticated_user(request, db)
+    user = get_authenticated_user(request, db)
+    try:
+        establish_tenant_context(user.gym_id)
+        bind_tenant_context_to_session(db, user.gym_id)
+    except TenantContextError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied.",
+        ) from exc
+    stamp_tenant_context(db)
+    return user
 
 
 def get_current_gym(db: Session, user: User) -> Gym:
     if user.gym_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied."
+        )
     gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
     if gym is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied."
+        )
     return gym
 
 
-def get_tenant_object(db: Session, user: User, model, resource_id: int, id_field: str = "id"):
+def get_tenant_object(
+    db: Session, user: User, model, resource_id: int, id_field: str = "id"
+):
     if user.gym_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    filter_clause = [getattr(model, id_field) ==
-                     resource_id, model.gym_id == user.gym_id]
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied."
+        )
+    filter_clause = [
+        getattr(model, id_field) == resource_id,
+        model.gym_id == user.gym_id,
+    ]
     obj = db.query(model).filter(*filter_clause).first()
     if obj is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied."
+        )
     return obj
 
 
@@ -118,7 +152,8 @@ def require_permission(permission: str):
     def dependency(request: Request, user: User = Depends(require_auth)) -> User:
         if not user.has_permission(permission):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied."
+            )
         return user
 
     return dependency
@@ -128,7 +163,8 @@ def require_any_permission(*permissions: str):
     def dependency(request: Request, user: User = Depends(require_auth)) -> User:
         if not any(user.has_permission(permission) for permission in permissions):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied."
+            )
         return user
 
     return dependency
@@ -142,11 +178,7 @@ def authenticate_user(
     *,
     commit: bool = True,
 ) -> User | None:
-    user = (
-        db.query(User)
-        .filter(User.email == email.strip().lower())
-        .first()
-    )
+    user = db.query(User).filter(User.email == email.strip().lower()).first()
 
     if user is None or user.status != "active":
         return None
@@ -198,12 +230,13 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
-def revoke_all_user_sessions(
-    db: Session, user_id: int, *, commit: bool = True
-) -> None:
+def revoke_all_user_sessions(db: Session, user_id: int, *, commit: bool = True) -> None:
     now = _now_utc()
-    sessions = db.query(UserSession).filter(
-        UserSession.user_id == user_id, UserSession.revoked_at.is_(None)).all()
+    sessions = (
+        db.query(UserSession)
+        .filter(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+        .all()
+    )
     for session in sessions:
         session.revoked_at = now
     if commit:
@@ -307,7 +340,8 @@ def require_auth_json(request: Request) -> None:
         get_authenticated_user(request, db)
     except HTTPException:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required."
+        )
     finally:
         db.close()
 
@@ -337,15 +371,24 @@ async def auth_middleware(request: Request, call_next):
                 return redirect_to_login(request)
             session = (
                 db.query(UserSession)
-                .filter(UserSession.token_hash == _hash_secret(token), UserSession.revoked_at.is_(None))
+                .filter(
+                    UserSession.token_hash == _hash_secret(token),
+                    UserSession.revoked_at.is_(None),
+                )
                 .first()
             )
             if session is None:
                 return redirect_to_login(request)
-            if _to_utc(session.expires_at) is None or _to_utc(session.expires_at) <= _now_utc():
+            if (
+                _to_utc(session.expires_at) is None
+                or _to_utc(session.expires_at) <= _now_utc()
+            ):
                 return redirect_to_login(request)
-            user = db.query(User).filter(
-                User.id == session.user_id, User.status == "active").first()
+            user = (
+                db.query(User)
+                .filter(User.id == session.user_id, User.status == "active")
+                .first()
+            )
             if user is None:
                 return redirect_to_login(request)
         finally:

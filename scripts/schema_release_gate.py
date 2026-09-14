@@ -15,11 +15,18 @@ if __package__ in {None, ""}:
 
 from scripts import postgres_backup
 
-EXPECTED_HEAD = "0008_payment_legacy_association"
+EXPECTED_HEAD = "0009_postgresql_tenant_rls"
 EXPECTED_START = "0004_align_authentication_token_columns"
 REQUIRED_TABLES = {
-    "alembic_version", "gyms", "members", "payments", "users",
-    "user_sessions", "password_reset_tokens", "audit_logs", "login_throttles",
+    "alembic_version",
+    "gyms",
+    "members",
+    "payments",
+    "users",
+    "user_sessions",
+    "password_reset_tokens",
+    "audit_logs",
+    "login_throttles",
     "legacy_member_records",
 }
 PAYMENT_9_BEFORE_FACTS = "9|1||saas|200|GHS|2026-08-28|Registration"
@@ -33,15 +40,23 @@ def _release_image_command(database_name: str, *command: str) -> list[str]:
     """Run a command in Compose's configured release image against one database."""
     return [
         *postgres_backup.COMPOSE,
-        "run", "--rm", "--no-deps", "web", "sh", "-ec",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "sh",
+        "-ec",
         'DATABASE_URL="${DATABASE_URL%/*}/$1"; shift; exec "$@"',
-        "--", database_name, *command,
+        "--",
+        database_name,
+        *command,
     ]
 
 
 def _revision_from_output(output: str) -> str:
     revisions = {
-        line.strip().split()[0] for line in output.splitlines()
+        line.strip().split()[0]
+        for line in output.splitlines()
         if line.strip().startswith("0")
     }
     if len(revisions) != 1:
@@ -61,37 +76,55 @@ def _release_image_revision(database_name: str) -> str:
 def _restore_archive(archive: Path, recovery_database: str) -> str:
     """Restore only to a validated disposable database and return its container path."""
     if not archive.is_file() or archive.suffix != ".dump":
-        raise postgres_backup.RecoveryError("A readable .dump backup archive is required.")
+        raise postgres_backup.RecoveryError(
+            "A readable .dump backup archive is required."
+        )
     if not postgres_backup.DATABASE_NAME_PATTERN.fullmatch(recovery_database):
-        raise postgres_backup.RecoveryError("Recovery database names must be simple PostgreSQL identifiers.")
+        raise postgres_backup.RecoveryError(
+            "Recovery database names must be simple PostgreSQL identifiers."
+        )
     if recovery_database == postgres_backup._live_database_name():
-        raise postgres_backup.RecoveryError("Refusing to restore over the configured live application database.")
+        raise postgres_backup.RecoveryError(
+            "Refusing to restore over the configured live application database."
+        )
 
     container_archive = postgres_backup._copy_archive_to_container(
         archive.resolve(), postgres_backup._container_id()
     )
     created = False
     try:
-        postgres_backup._run(postgres_backup._compose_exec("pg_restore", "--list", container_archive))
-        postgres_backup._run(postgres_backup._database_command(
-            'exec createdb -U "$POSTGRES_USER" "$1"', recovery_database
-        ))
+        postgres_backup._run(
+            postgres_backup._compose_exec("pg_restore", "--list", container_archive)
+        )
+        postgres_backup._run(
+            postgres_backup._database_command(
+                'exec createdb -U "$POSTGRES_USER" "$1"', recovery_database
+            )
+        )
         created = True
-        postgres_backup._run(postgres_backup._database_command(
-            'exec pg_restore --exit-on-error --no-owner --no-privileges '
-            '-U "$POSTGRES_USER" -d "$1" "$2"', recovery_database
-        ) + [container_archive])
+        postgres_backup._run(
+            postgres_backup._database_command(
+                "exec pg_restore --exit-on-error --no-owner --no-privileges "
+                '-U "$POSTGRES_USER" -d "$1" "$2"',
+                recovery_database,
+            )
+            + [container_archive]
+        )
     except Exception:
         postgres_backup._cleanup_container_archive(container_archive)
         if created:
-            postgres_backup._run(postgres_backup._database_command(
-                'exec dropdb -U "$POSTGRES_USER" "$1"', recovery_database
-            ))
+            postgres_backup._run(
+                postgres_backup._database_command(
+                    'exec dropdb -U "$POSTGRES_USER" "$1"', recovery_database
+                )
+            )
         raise
     return container_archive
 
 
-def _assert_pre_migration_state(database_name: str, expected_start: str) -> dict[str, int]:
+def _assert_pre_migration_state(
+    database_name: str, expected_start: str
+) -> dict[str, int]:
     revision = postgres_backup._query_database(
         database_name, "SELECT version_num FROM alembic_version;"
     )
@@ -104,7 +137,9 @@ def _assert_pre_migration_state(database_name: str, expected_start: str) -> dict
     )
     postgres_backup._verify_documented_legacy_unlinked_payments(legacy_rows)
     return postgres_backup._parse_checks(
-        postgres_backup._query_database(database_name, postgres_backup.TABLE_COUNT_QUERY)
+        postgres_backup._query_database(
+            database_name, postgres_backup.TABLE_COUNT_QUERY
+        )
     )
 
 
@@ -114,34 +149,64 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
         raise postgres_backup.RecoveryError(
             f"Migration did not reach {EXPECTED_HEAD}; found {revision}."
         )
-    tables = set(postgres_backup._query_database(database_name, """
+    tables = set(
+        postgres_backup._query_database(
+            database_name,
+            """
         SELECT table_name FROM information_schema.tables
         WHERE table_schema = 'public' ORDER BY table_name;
-    """).splitlines())
+    """,
+        ).splitlines()
+    )
     if not REQUIRED_TABLES <= tables:
-        raise postgres_backup.RecoveryError("Migrated database is missing required tables.")
-    payment_columns = set(postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Migrated database is missing required tables."
+        )
+    payment_columns = set(
+        postgres_backup._query_database(
+            database_name,
+            """
         SELECT column_name FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'payments';
-    """).splitlines())
+    """,
+        ).splitlines()
+    )
     if not {"status", "idempotency_key", "legacy_member_record_id"} <= payment_columns:
-        raise postgres_backup.RecoveryError("Migrated payments table is missing required columns.")
-    constraints = set(postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Migrated payments table is missing required columns."
+        )
+    constraints = set(
+        postgres_backup._query_database(
+            database_name,
+            """
         SELECT conname FROM pg_constraint
         WHERE conrelid IN ('payments'::regclass, 'login_throttles'::regclass);
-    """).splitlines())
-    if not {
-        "ck_payments_valid_status", "uq_login_throttles_key_hash",
-        "ck_payments_exactly_one_association",
-    } <= constraints:
-        raise postgres_backup.RecoveryError("Migrated database is missing required constraints.")
-    indexes = set(postgres_backup._query_database(database_name, """
+    """,
+        ).splitlines()
+    )
+    if (
+        not {
+            "ck_payments_valid_status",
+            "uq_login_throttles_key_hash",
+            "ck_payments_exactly_one_association",
+        }
+        <= constraints
+    ):
+        raise postgres_backup.RecoveryError(
+            "Migrated database is missing required constraints."
+        )
+    indexes = set(
+        postgres_backup._query_database(
+            database_name,
+            """
         SELECT indexname FROM pg_indexes
         WHERE schemaname = 'public'
           AND tablename IN (
               'payments', 'audit_logs', 'login_throttles', 'legacy_member_records'
           );
-    """).splitlines())
+    """,
+        ).splitlines()
+    )
     required_indexes = {
         "uq_payments_gym_idempotency_key",
         "ix_audit_logs_gym_created_at",
@@ -150,12 +215,19 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
         "ix_payments_legacy_member_record_id",
     }
     if not required_indexes <= indexes:
-        raise postgres_backup.RecoveryError("Migrated database is missing required indexes.")
-    foreign_keys = set(postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Migrated database is missing required indexes."
+        )
+    foreign_keys = set(
+        postgres_backup._query_database(
+            database_name,
+            """
         SELECT conname FROM pg_constraint
         WHERE conrelid IN ('payments'::regclass, 'legacy_member_records'::regclass)
           AND contype = 'f';
-    """).splitlines())
+    """,
+        ).splitlines()
+    )
     required_foreign_keys = {
         "fk_payments_gym_member",
         "fk_payments_gym_legacy_member_record",
@@ -163,34 +235,53 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
         "fk_legacy_member_records_gym_user",
     }
     if not required_foreign_keys <= foreign_keys:
-        raise postgres_backup.RecoveryError("Migrated database is missing tenant-safe foreign keys.")
-    validated = postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Migrated database is missing tenant-safe foreign keys."
+        )
+    validated = postgres_backup._query_database(
+        database_name,
+        """
         SELECT convalidated FROM pg_constraint
         WHERE conrelid = 'payments'::regclass
           AND conname = 'ck_payments_exactly_one_association';
-    """)
+    """,
+    )
     if validated != "t":
-        raise postgres_backup.RecoveryError("Payment association constraint is not validated.")
-    payment = postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Payment association constraint is not validated."
+        )
+    payment = postgres_backup._query_database(
+        database_name,
+        """
         SELECT p.id, p.gym_id, p.member_id, p.member_name, p.amount, p.currency,
                p.payment_date, p.payment_type, l.record_kind, l.reason_code,
                l.source_reference, l.gym_id
         FROM payments p
         JOIN legacy_member_records l ON l.id = p.legacy_member_record_id
         WHERE p.id = 9 AND p.member_id IS NULL AND l.gym_id = p.gym_id;
-    """)
+    """,
+    )
     if payment != PAYMENT_9_AFTER_FACTS:
-        raise postgres_backup.RecoveryError("Migration altered documented payment 9 facts.")
-    legacy_record_count = postgres_backup._query_database(database_name, """
+        raise postgres_backup.RecoveryError(
+            "Migration altered documented payment 9 facts."
+        )
+    legacy_record_count = postgres_backup._query_database(
+        database_name,
+        """
         SELECT COUNT(*) FROM legacy_member_records
         WHERE gym_id = 1 AND source_reference = 'legacy-payment-9'
           AND record_kind = 'ARCHIVED_LEGACY_MEMBER'
           AND reason_code = 'UNLINKED_HISTORICAL_PAYMENT';
-    """)
+    """,
+    )
     if legacy_record_count != "1":
-        raise postgres_backup.RecoveryError("Migration did not create exactly one payment 9 legacy record.")
+        raise postgres_backup.RecoveryError(
+            "Migration did not create exactly one payment 9 legacy record."
+        )
     after = postgres_backup._parse_checks(
-        postgres_backup._query_database(database_name, postgres_backup.TABLE_COUNT_QUERY)
+        postgres_backup._query_database(
+            database_name, postgres_backup.TABLE_COUNT_QUERY
+        )
     )
     for table, count in before.items():
         if after.get(table) != count:
@@ -198,18 +289,21 @@ def _assert_post_migration_state(database_name: str, before: dict[str, int]) -> 
                 f"Migration changed preserved row count for {table}."
             )
     postgres_backup._verify_payment_associations(database_name)
-    postgres_backup._run(_release_image_command(
-        database_name,
-        "python", "-c",
-        "import threading, time, urllib.request, uvicorn; "
-        "from app.main import app; "
-        "server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=8000, log_level='warning')); "
-        "thread = threading.Thread(target=server.run, daemon=True); thread.start(); "
-        "time.sleep(1); "
-        "response = urllib.request.urlopen('http://127.0.0.1:8000/health'); "
-        "server.should_exit = True; thread.join(timeout=5); "
-        "assert response.status == 200",
-    ))
+    postgres_backup._run(
+        _release_image_command(
+            database_name,
+            "python",
+            "-c",
+            "import threading, time, urllib.request, uvicorn; "
+            "from app.main import app; "
+            "server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=8000, log_level='warning')); "
+            "thread = threading.Thread(target=server.run, daemon=True); thread.start(); "
+            "time.sleep(1); "
+            "response = urllib.request.urlopen('http://127.0.0.1:8000/health'); "
+            "server.should_exit = True; thread.join(timeout=5); "
+            "assert response.status == 200",
+        )
+    )
 
 
 def rehearse(archive: Path, recovery_database: str, *, drop: bool) -> None:
@@ -220,17 +314,21 @@ def rehearse(archive: Path, recovery_database: str, *, drop: bool) -> None:
         container_archive = _restore_archive(archive, recovery_database)
         created = True
         before = _assert_pre_migration_state(recovery_database, EXPECTED_START)
-        postgres_backup._run(_release_image_command(
-            recovery_database, "python", "-m", "alembic", "upgrade", "head"
-        ))
+        postgres_backup._run(
+            _release_image_command(
+                recovery_database, "python", "-m", "alembic", "upgrade", "head"
+            )
+        )
         _assert_post_migration_state(recovery_database, before)
     finally:
         if container_archive:
             postgres_backup._cleanup_container_archive(container_archive)
         if created and drop:
-            postgres_backup._run(postgres_backup._database_command(
-                'exec dropdb -U "$POSTGRES_USER" "$1"', recovery_database
-            ))
+            postgres_backup._run(
+                postgres_backup._database_command(
+                    'exec dropdb -U "$POSTGRES_USER" "$1"', recovery_database
+                )
+            )
 
 
 def parse_args() -> argparse.Namespace:
@@ -244,8 +342,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        rehearse(args.archive, args.recovery_database,
-                 drop=args.drop_recovery_database)
+        rehearse(args.archive, args.recovery_database, drop=args.drop_recovery_database)
         print(f"Migration rehearsal passed: {EXPECTED_HEAD}")
         return 0
     except postgres_backup.RecoveryError as error:

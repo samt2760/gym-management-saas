@@ -24,9 +24,7 @@ def upgrade() -> None:
         "payments",
         sa.Column("idempotency_key", sa.String(length=128), nullable=True),
     )
-    op.execute(
-        sa.text("UPDATE payments SET status = 'Completed' WHERE status IS NULL")
-    )
+    op.execute(sa.text("UPDATE payments SET status = 'Completed' WHERE status IS NULL"))
 
     if bind.dialect.name == "postgresql":
         op.alter_column(

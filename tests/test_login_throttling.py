@@ -46,7 +46,9 @@ def test_failed_logins_are_hashed_database_state_and_threshold_is_enforced(
 ):
     user = _user(db)
     monkeypatch.setattr("app.services.login_throttle_service.MAX_LOGIN_ATTEMPTS", 2)
-    monkeypatch.setattr("app.services.login_throttle_service.LOGIN_RATE_LIMIT_SECONDS", 60)
+    monkeypatch.setattr(
+        "app.services.login_throttle_service.LOGIN_RATE_LIMIT_SECONDS", 60
+    )
 
     for _ in range(2):
         response = _login(public_client, username=user.username, password="incorrect")
@@ -63,7 +65,10 @@ def test_failed_logins_are_hashed_database_state_and_threshold_is_enforced(
     blocked = _login(public_client, username=user.username, password=PASSWORD)
     assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
     assert db.query(UserSession).count() == 0
-    assert db.query(AuditLog).filter(AuditLog.action == "auth.login_succeeded").count() == 0
+    assert (
+        db.query(AuditLog).filter(AuditLog.action == "auth.login_succeeded").count()
+        == 0
+    )
 
 
 def test_successful_login_clears_database_throttle_and_records_audit(public_client, db):
@@ -76,16 +81,24 @@ def test_successful_login_clears_database_throttle_and_records_audit(public_clie
     assert success.status_code == status.HTTP_303_SEE_OTHER
     assert db.query(LoginThrottle).count() == 0
     assert db.query(UserSession).filter(UserSession.user_id == user.id).count() == 1
-    assert db.query(AuditLog).filter(
-        AuditLog.action == "auth.login_succeeded", AuditLog.actor_user_id == user.id
-    ).count() == 1
+    assert (
+        db.query(AuditLog)
+        .filter(
+            AuditLog.action == "auth.login_succeeded", AuditLog.actor_user_id == user.id
+        )
+        .count()
+        == 1
+    )
 
 
 def test_expired_throttle_allows_login_again(public_client, db, monkeypatch):
     user = _user(db)
     monkeypatch.setattr("app.services.login_throttle_service.MAX_LOGIN_ATTEMPTS", 1)
 
-    assert _login(public_client, username=user.username, password="incorrect").status_code == 401
+    assert (
+        _login(public_client, username=user.username, password="incorrect").status_code
+        == 401
+    )
     throttle = db.query(LoginThrottle).one()
     throttle.locked_until = datetime.now(UTC) - timedelta(seconds=1)
     db.commit()

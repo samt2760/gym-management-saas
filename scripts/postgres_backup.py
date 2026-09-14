@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import re
-import shutil
 import subprocess
 import sys
 import uuid
@@ -24,19 +23,21 @@ class RecoveryError(RuntimeError):
     """Raised when a backup or disposable recovery verification fails."""
 
 
-def _run(command: list[str], *, input_stream=None, text: bool = True) -> subprocess.CompletedProcess:
+def _run(
+    command: list[str], *, input_stream=None, text: bool = True
+) -> subprocess.CompletedProcess:
     """Run Docker without echoing commands or database output to the console."""
     result = subprocess.run(
         command,
         stdin=input_stream,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=text,
         check=False,
     )
     if result.returncode:
         raise RecoveryError(
-            "PostgreSQL backup or recovery command failed; inspect Docker logs.")
+            "PostgreSQL backup or recovery command failed; inspect Docker logs."
+        )
     return result
 
 
@@ -48,8 +49,7 @@ def _live_database_name() -> str:
     result = _run(_compose_exec("printenv", "POSTGRES_DB"))
     database_name = result.stdout.strip()
     if not DATABASE_NAME_PATTERN.fullmatch(database_name):
-        raise RecoveryError(
-            "The configured PostgreSQL database name is invalid.")
+        raise RecoveryError("The configured PostgreSQL database name is invalid.")
     return database_name
 
 
@@ -66,8 +66,7 @@ def _ensure_archive_path(archive: Path) -> Path:
     if archive.suffix != ".dump":
         raise RecoveryError("Backup archives must use the .dump extension.")
     if archive.exists():
-        raise RecoveryError(
-            "Refusing to overwrite an existing backup archive.")
+        raise RecoveryError("Refusing to overwrite an existing backup archive.")
     archive.parent.mkdir(parents=True, exist_ok=True)
     return archive
 
@@ -78,7 +77,8 @@ def create_backup(archive: Path) -> Path:
     partial = archive.with_suffix(".dump.partial")
     if partial.exists():
         raise RecoveryError(
-            "A partial backup archive already exists; inspect it before retrying.")
+            "A partial backup archive already exists; inspect it before retrying."
+        )
 
     command = _compose_exec(
         "sh",
@@ -96,8 +96,7 @@ def create_backup(archive: Path) -> Path:
                 check=False,
             )
         if result.returncode:
-            raise RecoveryError(
-                "pg_dump failed; no backup archive was created.")
+            raise RecoveryError("pg_dump failed; no backup archive was created.")
         if partial.stat().st_size == 0:
             raise RecoveryError("pg_dump created an empty backup archive.")
         partial.replace(archive)
@@ -180,7 +179,14 @@ ORDER BY 1;
 # This exact row is permitted only in pre-Mission-9 backups.  Once the legacy
 # record schema exists, every payment must have exactly one tenant-safe link.
 DOCUMENTED_LEGACY_UNLINKED_PAYMENT = (
-    "9", "1", "saas", "200", "GHS", "2026-08-28", "Monthly", "Registration",
+    "9",
+    "1",
+    "saas",
+    "200",
+    "GHS",
+    "2026-08-28",
+    "Monthly",
+    "Registration",
 )
 LEGACY_UNLINKED_PAYMENTS_QUERY = """
 SELECT id, gym_id, member_name, amount, currency, payment_date,
@@ -196,8 +202,7 @@ def _parse_checks(output: str) -> dict[str, int]:
     for line in output.splitlines():
         name, separator, value = line.partition("|")
         if not separator or not value.isdigit():
-            raise RecoveryError(
-                "Recovery verification returned an unexpected result.")
+            raise RecoveryError("Recovery verification returned an unexpected result.")
         checks[name] = int(value)
     return checks
 
@@ -215,14 +220,17 @@ def _verify_documented_legacy_unlinked_payments(output: str) -> None:
 
 def _verify_payment_associations(database_name: str) -> None:
     """Verify either the documented pre-release exception or the new invariant."""
-    schema_ready = _query_database(database_name, """
+    schema_ready = _query_database(
+        database_name,
+        """
         SELECT to_regclass('public.legacy_member_records') IS NOT NULL
            AND EXISTS (
                SELECT 1 FROM information_schema.columns
                WHERE table_schema = 'public' AND table_name = 'payments'
                  AND column_name = 'legacy_member_record_id'
            );
-    """)
+    """,
+    )
     if schema_ready == "f":
         _verify_documented_legacy_unlinked_payments(
             _query_database(database_name, LEGACY_UNLINKED_PAYMENTS_QUERY)
@@ -230,7 +238,9 @@ def _verify_payment_associations(database_name: str) -> None:
         return
     if schema_ready != "t":
         raise RecoveryError("Payment legacy-association schema is incomplete.")
-    invalid = _query_database(database_name, """
+    invalid = _query_database(
+        database_name,
+        """
         SELECT p.id
         FROM payments p
         LEFT JOIN members m ON m.id = p.member_id AND m.gym_id = p.gym_id
@@ -242,23 +252,29 @@ def _verify_payment_associations(database_name: str) -> None:
             (p.member_id IS NULL AND p.legacy_member_record_id IS NOT NULL AND l.id IS NOT NULL)
         )
         ORDER BY p.id;
-    """)
+    """,
+    )
     if invalid:
         raise RecoveryError("Recovered database contains invalid payment associations.")
-    payment_9 = _query_database(database_name, """
+    payment_9 = _query_database(
+        database_name,
+        """
         SELECT p.id, p.gym_id, p.member_id, p.member_name, p.amount, p.currency,
                p.payment_date, p.payment_type,
                l.record_kind, l.reason_code, l.source_reference, l.gym_id
         FROM payments p
         JOIN legacy_member_records l ON l.id = p.legacy_member_record_id
         WHERE p.id = 9;
-    """)
+    """,
+    )
     expected = (
         "9|1||saas|200|GHS|2026-08-28|Registration|"
         "ARCHIVED_LEGACY_MEMBER|UNLINKED_HISTORICAL_PAYMENT|legacy-payment-9|1"
     )
     if payment_9 != expected:
-        raise RecoveryError("Payment 9 legacy association or immutable facts are invalid.")
+        raise RecoveryError(
+            "Payment 9 legacy association or immutable facts are invalid."
+        )
 
 
 def verify_restore(
@@ -273,10 +289,12 @@ def verify_restore(
         raise RecoveryError("A readable .dump backup archive is required.")
     if not DATABASE_NAME_PATTERN.fullmatch(recovery_database):
         raise RecoveryError(
-            "Recovery database names must be simple PostgreSQL identifiers.")
+            "Recovery database names must be simple PostgreSQL identifiers."
+        )
     if recovery_database == _live_database_name():
         raise RecoveryError(
-            "Refusing to restore over the configured live application database.")
+            "Refusing to restore over the configured live application database."
+        )
 
     container_id = _container_id()
     container_archive = _copy_archive_to_container(archive, container_id)
@@ -291,23 +309,23 @@ def verify_restore(
         created = True
         _run(
             _database_command(
-                'exec pg_restore --exit-on-error --no-owner --no-privileges '
+                "exec pg_restore --exit-on-error --no-owner --no-privileges "
                 '-U "$POSTGRES_USER" -d "$1" "$2"',
                 recovery_database,
             )
             + [container_archive]
         )
-        counts = _parse_checks(_query_database(
-            recovery_database, TABLE_COUNT_QUERY))
-        integrity = _parse_checks(_query_database(
-            recovery_database, INTEGRITY_QUERY))
+        counts = _parse_checks(_query_database(recovery_database, TABLE_COUNT_QUERY))
+        integrity = _parse_checks(_query_database(recovery_database, INTEGRITY_QUERY))
         _verify_payment_associations(recovery_database)
         invalid = {name: count for name, count in integrity.items() if count}
         if invalid:
             raise RecoveryError(
-                "Recovered database failed orphan or structural integrity checks.")
+                "Recovered database failed orphan or structural integrity checks."
+            )
         revision = _query_database(
-            recovery_database, "SELECT version_num FROM alembic_version;")
+            recovery_database, "SELECT version_num FROM alembic_version;"
+        )
         if not revision:
             raise RecoveryError("Recovered database has no Alembic revision.")
         return counts, revision
@@ -325,8 +343,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
 
-    backup = commands.add_parser(
-        "backup", help="Create a PostgreSQL custom archive.")
+    backup = commands.add_parser("backup", help="Create a PostgreSQL custom archive.")
     backup.add_argument("--output", required=True, type=Path)
 
     verify = commands.add_parser(
@@ -351,8 +368,10 @@ def main() -> int:
             drop_recovery_database=args.drop_recovery_database,
         )
         print("Recovery verification passed.")
-        print("Table counts:", ", ".join(
-            f"{name}={count}" for name, count in counts.items()))
+        print(
+            "Table counts:",
+            ", ".join(f"{name}={count}" for name, count in counts.items()),
+        )
         print(f"Alembic revision: {revision}")
         return 0
     except RecoveryError as error:

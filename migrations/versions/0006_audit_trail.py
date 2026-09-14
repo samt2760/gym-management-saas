@@ -26,12 +26,8 @@ def upgrade() -> None:
         sa.Column("details", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["gym_id"], ["gyms.id"], ondelete="RESTRICT"
-        ),
-        sa.ForeignKeyConstraint(
-            ["actor_user_id"], ["users.id"], ondelete="RESTRICT"
-        ),
+        sa.ForeignKeyConstraint(["gym_id"], ["gyms.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["actor_user_id"], ["users.id"], ondelete="RESTRICT"),
     )
     op.create_index("ix_audit_logs_id", "audit_logs", ["id"])
     op.create_index("ix_audit_logs_gym_id", "audit_logs", ["gym_id"])

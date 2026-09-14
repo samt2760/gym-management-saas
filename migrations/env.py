@@ -21,9 +21,7 @@ config = context.config
 
 database_url = os.getenv("DATABASE_URL")
 if not database_url:
-    raise RuntimeError(
-        "DATABASE_URL environment variable is required for Alembic."
-    )
+    raise RuntimeError("DATABASE_URL environment variable is required for Alembic.")
 config.set_main_option(
     "sqlalchemy.url",
     database_url.replace("%", "%%"),
@@ -79,9 +77,7 @@ def include_object(
 
     # Ignore the legacy users role constraint.
     return not (
-        type_ == "check_constraint"
-        and reflected
-        and name == "ck_users_valid_role"
+        type_ == "check_constraint" and reflected and name == "ck_users_valid_role"
     )
 
 
@@ -92,9 +88,7 @@ def run_migrations_offline():
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={
-            "paramstyle": "named"
-        },
+        dialect_opts={"paramstyle": "named"},
         include_object=include_object,
     )
 

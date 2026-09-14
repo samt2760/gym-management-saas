@@ -18,7 +18,6 @@ from app.models import Gym
 from app.models.user import PasswordResetToken, User, UserSession, hash_password
 from app.services.password_reset_delivery import development_delivery
 
-
 PASSWORD = "StrongPass!123"
 
 
@@ -130,9 +129,13 @@ def test_reset_delivery_contains_raw_token_only_in_controlled_test_sink(
     assert len(development_delivery.messages) == 1
     message = development_delivery.messages[0]
     token = parse_qs(urlparse(message.reset_url).query)["token"][0]
-    stored = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-    ).one()
+    stored = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.id,
+        )
+        .one()
+    )
 
     assert message.recipient == user.email
     assert token not in stored.token_hash
@@ -168,7 +171,9 @@ def test_new_reset_request_invalidates_previous_token(public_client, db):
 def test_reset_validates_password_and_consumes_token(public_client, db):
     user = _create_user(db)
     _request_reset(public_client, user.email)
-    token = parse_qs(urlparse(development_delivery.messages[-1].reset_url).query)["token"][0]
+    token = parse_qs(urlparse(development_delivery.messages[-1].reset_url).query)[
+        "token"
+    ][0]
 
     response = public_client.post(
         "/account/password/reset",
@@ -202,9 +207,13 @@ def test_reset_validates_password_and_consumes_token(public_client, db):
         },
     )
     assert response.status_code == status.HTTP_200_OK
-    reset = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-    ).one()
+    reset = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.id,
+        )
+        .one()
+    )
     assert reset.used_at is not None
 
     response = public_client.post(
@@ -233,18 +242,26 @@ def test_reset_submission_requires_csrf(public_client, db):
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    reset = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-    ).one()
+    reset = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.id,
+        )
+        .one()
+    )
     assert reset.used_at is None
 
 
 def test_expired_reset_token_fails(public_client, db):
     user = _create_user(db)
     token = create_password_reset_token(db, user)
-    reset = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-    ).one()
+    reset = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.id,
+        )
+        .one()
+    )
     reset.expires_at = datetime.now(UTC) - timedelta(seconds=1)
     db.commit()
 
@@ -285,16 +302,26 @@ def test_successful_reset_revokes_only_that_users_sessions(
         )
         assert response.status_code == status.HTTP_200_OK
 
-        user_session = db.query(UserSession).filter(
-            UserSession.user_id == user.id,
-        ).one()
-        other_session = db.query(UserSession).filter(
-            UserSession.user_id == other.id,
-        ).one()
+        user_session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_id == user.id,
+            )
+            .one()
+        )
+        other_session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_id == other.id,
+            )
+            .one()
+        )
         assert user_session.revoked_at is not None
         assert other_session.revoked_at is None
 
-        assert public_client.get("/dashboard", follow_redirects=False).status_code == 307
+        assert (
+            public_client.get("/dashboard", follow_redirects=False).status_code == 307
+        )
         assert other_client.get("/dashboard").status_code == 200
 
 
@@ -312,9 +339,13 @@ def test_reset_request_rate_limit_is_shared_for_existing_accounts(
     assert _request_reset(public_client, user.email).status_code == 200
     assert len(development_delivery.messages) == 2
 
-    tokens = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-    ).all()
+    tokens = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.user_id == user.id,
+        )
+        .all()
+    )
     for reset in tokens:
         reset.created_at = datetime.now(UTC) - timedelta(seconds=61)
     db.commit()

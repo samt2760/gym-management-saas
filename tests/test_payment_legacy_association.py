@@ -68,7 +68,9 @@ def test_payment_with_only_legacy_association_succeeds(db):
     db.commit()
 
 
-@pytest.mark.parametrize("association", [{}, {"member_id": 1, "legacy_member_record_id": 1}])
+@pytest.mark.parametrize(
+    "association", [{}, {"member_id": 1, "legacy_member_record_id": 1}]
+)
 def test_payment_requires_exactly_one_association(db, association):
     gym = _gym(db, "Invariant Gym")
     member = _member(db, gym)
@@ -94,12 +96,14 @@ def test_source_reference_is_unique_per_gym_but_reusable_by_another_gym(db):
     second_gym = _gym(db, "Second Gym")
     _legacy(db, first_gym, "legacy-payment-9")
     _legacy(db, second_gym, "legacy-payment-9")
-    db.add(LegacyMemberRecord(
-        gym_id=first_gym.id,
-        record_kind="ARCHIVED_LEGACY_MEMBER",
-        reason_code="UNLINKED_HISTORICAL_PAYMENT",
-        source_reference="legacy-payment-9",
-    ))
+    db.add(
+        LegacyMemberRecord(
+            gym_id=first_gym.id,
+            record_kind="ARCHIVED_LEGACY_MEMBER",
+            reason_code="UNLINKED_HISTORICAL_PAYMENT",
+            source_reference="legacy-payment-9",
+        )
+    )
     with pytest.raises(IntegrityError):
         db.commit()
 

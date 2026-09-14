@@ -5,7 +5,15 @@ from enum import Enum
 
 import bcrypt
 from pwdlib import PasswordHash
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -103,9 +111,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
 
 class User(TimestampMixin, Base):
     __tablename__ = "users"
-    __table_args__ = (
-        UniqueConstraint("gym_id", "id", name="uq_users_gym_id_id"),
-    )
+    __table_args__ = (UniqueConstraint("gym_id", "id", name="uq_users_gym_id_id"),)
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -186,9 +192,7 @@ class User(TimestampMixin, Base):
             return True
 
         permission_value = (
-            permission.value
-            if isinstance(permission, Permission)
-            else permission
+            permission.value if isinstance(permission, Permission) else permission
         )
 
         role = self.role.upper()

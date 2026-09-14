@@ -24,9 +24,7 @@ def register_page(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.create")),
 ):
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     return templates.TemplateResponse(
         request=request,
@@ -45,9 +43,7 @@ def create_member(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.create")),
 ):
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     if gym is None:
         raise HTTPException(
@@ -58,13 +54,9 @@ def create_member(
     try:
         MembershipService.validate_pricing(gym)
     except ValueError:
-        return {
-            "error": "Gym pricing is not configured correctly."
-        }
+        return {"error": "Gym pricing is not configured correctly."}
 
-    due_date = registration_due_date(
-        registration_date
-    )
+    due_date = registration_due_date(registration_date)
 
     member = Member(
         gym_id=gym.id,
@@ -75,11 +67,7 @@ def create_member(
         registration_date=registration_date,
         membership_type="Monthly",
         payment_due_date=due_date,
-        status=(
-            "Active"
-            if due_date >= datetime.now(UTC).date()
-            else "Expired"
-        ),
+        status=("Active" if due_date >= datetime.now(UTC).date() else "Expired"),
     )
 
     try:
@@ -94,15 +82,26 @@ def create_member(
 
         db.add(registration)
         record_audit(
-            db, gym_id=gym.id, actor=user, action="member.created",
-            resource_type="member", resource_id=member.id,
+            db,
+            gym_id=gym.id,
+            actor=user,
+            action="member.created",
+            resource_type="member",
+            resource_id=member.id,
             details={"source": "registration"},
         )
         db.flush()
         record_audit(
-            db, gym_id=gym.id, actor=user, action="payment.created",
-            resource_type="payment", resource_id=registration.id,
-            details={"payment_type": "Registration", "amount_minor": registration.amount},
+            db,
+            gym_id=gym.id,
+            actor=user,
+            action="payment.created",
+            resource_type="payment",
+            resource_id=registration.id,
+            details={
+                "payment_type": "Registration",
+                "amount_minor": registration.amount,
+            },
         )
         db.commit()
 
@@ -129,14 +128,19 @@ def members_page(
 
     today = datetime.now(UTC).date()
     status = status if status in {"all", "active", "expired", "due_soon"} else "all"
-    sort = sort if sort in {
-        "expiry_soonest",
-        "expiry_latest",
-        "name_asc",
-        "name_desc",
-        "registration_newest",
-        "registration_oldest",
-    } else "expiry_soonest"
+    sort = (
+        sort
+        if sort
+        in {
+            "expiry_soonest",
+            "expiry_latest",
+            "name_asc",
+            "name_desc",
+            "registration_newest",
+            "registration_oldest",
+        }
+        else "expiry_soonest"
+    )
 
     base_filter = (
         Member.gym_id == user.gym_id,
@@ -144,27 +148,37 @@ def members_page(
     )
 
     total_members = db.query(Member).filter(*base_filter).count()
-    active_count = db.query(Member).filter(
-        *base_filter,
-        Member.payment_due_date >= today,
-    ).count()
-    expired_count = db.query(Member).filter(
-        *base_filter,
-        Member.payment_due_date < today,
-    ).count()
-    due_soon_count = db.query(Member).filter(
-        *base_filter,
-        Member.payment_due_date >= today,
-        Member.payment_due_date <= today + timedelta(days=7),
-    ).count()
+    active_count = (
+        db.query(Member)
+        .filter(
+            *base_filter,
+            Member.payment_due_date >= today,
+        )
+        .count()
+    )
+    expired_count = (
+        db.query(Member)
+        .filter(
+            *base_filter,
+            Member.payment_due_date < today,
+        )
+        .count()
+    )
+    due_soon_count = (
+        db.query(Member)
+        .filter(
+            *base_filter,
+            Member.payment_due_date >= today,
+            Member.payment_due_date <= today + timedelta(days=7),
+        )
+        .count()
+    )
 
     query = db.query(Member).filter(*base_filter)
 
     if search.strip():
         term = f"%{search.strip()}%"
-        query = query.filter(
-            Member.full_name.ilike(term) | Member.phone.ilike(term)
-        )
+        query = query.filter(Member.full_name.ilike(term) | Member.phone.ilike(term))
 
     if status == "active":
         query = query.filter(Member.payment_due_date >= today)
@@ -198,7 +212,7 @@ def members_page(
             "expired_count": expired_count,
             "due_soon_count": due_soon_count,
             "today": today,
-                "current_user": user,
+            "current_user": user,
         },
     )
 
@@ -256,11 +270,15 @@ def create_existing_member(
             detail="Date of birth cannot be after registration date.",
         )
 
-    duplicate = db.query(Member).filter(
-        Member.gym_id == user.gym_id,
-        Member.deleted_at.is_(None),
-        Member.full_name.ilike(full_name),
-    ).first()
+    duplicate = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == user.gym_id,
+            Member.deleted_at.is_(None),
+            Member.full_name.ilike(full_name),
+        )
+        .first()
+    )
     if duplicate is not None:
         raise HTTPException(
             status_code=400,
@@ -281,8 +299,12 @@ def create_existing_member(
     db.add(member)
     db.flush()
     record_audit(
-        db, gym_id=user.gym_id, actor=user, action="member.created",
-        resource_type="member", resource_id=member.id,
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="member.created",
+        resource_type="member",
+        resource_id=member.id,
         details={"source": "existing_member"},
     )
     db.commit()
@@ -298,10 +320,15 @@ def deleted_members_page(
     user: User = Depends(require_permission("members.view")),
 ):
     gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
-    deleted_members = db.query(Member).filter(
-        Member.gym_id == user.gym_id,
-        Member.deleted_at.is_not(None),
-    ).order_by(Member.deleted_at.desc()).all()
+    deleted_members = (
+        db.query(Member)
+        .filter(
+            Member.gym_id == user.gym_id,
+            Member.deleted_at.is_not(None),
+        )
+        .order_by(Member.deleted_at.desc())
+        .all()
+    )
     return templates.TemplateResponse(
         request=request,
         name="deleted_members.html",
@@ -319,9 +346,11 @@ def restore_member(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.delete")),
 ):
-    member = db.query(Member).filter(
-        Member.id == member_id, Member.gym_id == user.gym_id
-    ).first()
+    member = (
+        db.query(Member)
+        .filter(Member.id == member_id, Member.gym_id == user.gym_id)
+        .first()
+    )
     if member is None:
         raise HTTPException(status_code=403, detail="Access denied.")
     if member.deleted_at is None:
@@ -329,13 +358,15 @@ def restore_member(
 
     member.deleted_at = None
     member.status = (
-        "Active"
-        if member.payment_due_date >= datetime.now(UTC).date()
-        else "Expired"
+        "Active" if member.payment_due_date >= datetime.now(UTC).date() else "Expired"
     )
     record_audit(
-        db, gym_id=user.gym_id, actor=user, action="member.restored",
-        resource_type="member", resource_id=member.id,
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="member.restored",
+        resource_type="member",
+        resource_id=member.id,
     )
     db.commit()
     return RedirectResponse(url="/members", status_code=303)
@@ -366,9 +397,7 @@ def member_details(
             detail="Access denied.",
         )
 
-    gym = db.query(Gym).filter(
-        Gym.id == user.gym_id
-    ).first()
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     payments = (
         db.query(Payment)
@@ -477,14 +506,16 @@ def update_member(
     # Recalculate only the display/status state from the
     # existing entitlement date.
     member.status = (
-        "Active"
-        if member.payment_due_date >= datetime.now(UTC).date()
-        else "Expired"
+        "Active" if member.payment_due_date >= datetime.now(UTC).date() else "Expired"
     )
 
     record_audit(
-        db, gym_id=user.gym_id, actor=user, action="member.updated",
-        resource_type="member", resource_id=member.id,
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="member.updated",
+        resource_type="member",
+        resource_id=member.id,
     )
     db.commit()
 
@@ -500,9 +531,11 @@ def delete_member(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("members.delete")),
 ):
-    member = db.query(Member).filter(
-        Member.id == member_id, Member.gym_id == user.gym_id
-    ).first()
+    member = (
+        db.query(Member)
+        .filter(Member.id == member_id, Member.gym_id == user.gym_id)
+        .first()
+    )
     if member is None:
         raise HTTPException(status_code=403, detail="Access denied.")
     if member.deleted_at is not None:
@@ -510,8 +543,12 @@ def delete_member(
 
     member.deleted_at = datetime.now(UTC)
     record_audit(
-        db, gym_id=user.gym_id, actor=user, action="member.deleted",
-        resource_type="member", resource_id=member.id,
+        db,
+        gym_id=user.gym_id,
+        actor=user,
+        action="member.deleted",
+        resource_type="member",
+        resource_id=member.id,
     )
     db.commit()
 

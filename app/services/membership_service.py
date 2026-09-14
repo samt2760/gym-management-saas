@@ -55,19 +55,26 @@ def renewal_start_date(member: Member, today: date | None = None) -> date:
     return member.payment_due_date
 
 
-def extend_membership(member: Member, months_paid: int, today: date | None = None) -> None:
+def extend_membership(
+    member: Member, months_paid: int, today: date | None = None
+) -> None:
     effective_today = today or _utc_today()
-    member.payment_due_date = renewal_start_date(member, effective_today) + relativedelta(
-        months=months_paid
-    )
+    member.payment_due_date = renewal_start_date(
+        member, effective_today
+    ) + relativedelta(months=months_paid)
     member.status = "Active"
 
 
-def membership_history(member: Member, payments: Iterable[Payment]) -> list[dict[str, object]]:
+def membership_history(
+    member: Member, payments: Iterable[Payment]
+) -> list[dict[str, object]]:
     events: list[dict[str, object]] = []
     for payment in sorted(
         payments,
-        key=lambda item: (getattr(item, "payment_date", date.min), getattr(item, "id", 0)),
+        key=lambda item: (
+            getattr(item, "payment_date", date.min),
+            getattr(item, "id", 0),
+        ),
     ):
         events.append(
             {
@@ -97,7 +104,9 @@ class MembershipService:
         effective_date = as_of or _utc_today()
         if member.status in {"Frozen", "Cancelled"}:
             return member.status
-        new_status = "Active" if member.payment_due_date >= effective_date else "Expired"
+        new_status = (
+            "Active" if member.payment_due_date >= effective_date else "Expired"
+        )
         member.status = new_status
         return member.status
 
@@ -115,12 +124,16 @@ class MembershipService:
             raise ValueError("Member is required.")
 
         effective_date = as_of or _utc_today()
-        effective_registration_date = registration_date or member.registration_date or effective_date
+        effective_registration_date = (
+            registration_date or member.registration_date or effective_date
+        )
         effective_payment_date = payment_date or effective_registration_date
         member.registration_date = effective_registration_date
         member.membership_type = "Monthly"
         member.payment_due_date = registration_due_date(effective_registration_date)
-        member.status = "Active" if member.payment_due_date >= effective_date else "Expired"
+        member.status = (
+            "Active" if member.payment_due_date >= effective_date else "Expired"
+        )
         payment_amount = gym.registration_fee + gym.monthly_fee
         payment = Payment(
             gym_id=gym.id,
@@ -152,13 +165,21 @@ class MembershipService:
             raise ValueError("Member must be registered before renewal.")
 
         if amount <= 0 or gym.monthly_fee <= 0:
-            raise ValueError(f"Invalid payment amount. Enter a multiple of {gym.monthly_fee}.")
+            raise ValueError(
+                f"Invalid payment amount. Enter a multiple of {gym.monthly_fee}."
+            )
 
         if months is None:
             months = amount // gym.monthly_fee
 
-        if months <= 0 or amount % gym.monthly_fee != 0 or amount != gym.monthly_fee * months:
-            raise ValueError(f"Invalid payment amount. Enter a multiple of {gym.monthly_fee}.")
+        if (
+            months <= 0
+            or amount % gym.monthly_fee != 0
+            or amount != gym.monthly_fee * months
+        ):
+            raise ValueError(
+                f"Invalid payment amount. Enter a multiple of {gym.monthly_fee}."
+            )
 
         effective_payment_date = payment_date or _utc_today()
         start_date = renewal_start_date(member, effective_payment_date)

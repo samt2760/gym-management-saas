@@ -28,6 +28,7 @@ engine = create_engine(
 # through a physical member/gym deletion.
 # ============================================================
 
+
 @event.listens_for(engine, "connect")
 def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
     if engine.dialect.name == "sqlite":

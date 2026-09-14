@@ -18,9 +18,7 @@ print("\n=== ROW COUNTS ===")
 
 for table in ["gyms", "members", "payments"]:
     try:
-        count = cursor.execute(
-            f"SELECT COUNT(*) FROM {table}"
-        ).fetchone()[0]
+        count = cursor.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         print(f"{table}: {count}")
     except sqlite3.OperationalError:
         print(f"{table}: TABLE DOES NOT EXIST")
@@ -28,9 +26,7 @@ for table in ["gyms", "members", "payments"]:
 print("\n=== ALEMBIC VERSION ===")
 
 try:
-    version = cursor.execute(
-        "SELECT version_num FROM alembic_version"
-    ).fetchall()
+    version = cursor.execute("SELECT version_num FROM alembic_version").fetchall()
 
     if version:
         for row in version:

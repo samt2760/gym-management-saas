@@ -12,7 +12,9 @@ from app.services.membership_service import (
 
 
 def _make_gym() -> Gym:
-    return Gym(name="Service Gym", currency="GHS", registration_fee=200, monthly_fee=120)
+    return Gym(
+        name="Service Gym", currency="GHS", registration_fee=200, monthly_fee=120
+    )
 
 
 def _make_member() -> Member:
@@ -49,7 +51,9 @@ def test_renewal_rejects_unregistered_member():
     member.registration_date = None
 
     with pytest.raises(ValueError, match="registered"):
-        MembershipService.renew_membership(_make_gym(), member, 1, payment_date=date(2026, 3, 1))
+        MembershipService.renew_membership(
+            _make_gym(), member, 1, payment_date=date(2026, 3, 1)
+        )
 
 
 def test_invalid_renewal_amount_is_rejected():
@@ -57,7 +61,9 @@ def test_invalid_renewal_amount_is_rejected():
     member = _make_member()
 
     with pytest.raises(ValueError, match="multiple of 120"):
-        MembershipService.renew_membership(gym, member, 130, payment_date=date(2026, 3, 1))
+        MembershipService.renew_membership(
+            gym, member, 130, payment_date=date(2026, 3, 1)
+        )
 
 
 def test_multi_month_renewal_extends_due_date_from_current_expiry():
@@ -66,7 +72,9 @@ def test_multi_month_renewal_extends_due_date_from_current_expiry():
     member.registration_date = date(2026, 1, 1)
     member.payment_due_date = date(2026, 3, 15)
 
-    payment = MembershipService.renew_membership(gym, member, gym.monthly_fee * 3, payment_date=date(2026, 3, 1))
+    payment = MembershipService.renew_membership(
+        gym, member, gym.monthly_fee * 3, payment_date=date(2026, 3, 1)
+    )
 
     assert payment.amount == 360
     assert member.payment_due_date == date(2026, 6, 15)
@@ -89,8 +97,24 @@ def test_membership_history_combines_registration_and_renewal_events():
     member = _make_member()
     member.payment_due_date = date(2026, 4, 30)
     payments = [
-        type("Payment", (), {"payment_type": "Registration", "payment_date": date(2026, 1, 31), "amount": 320})(),
-        type("Payment", (), {"payment_type": "Renewal", "payment_date": date(2026, 3, 1), "amount": 240})(),
+        type(
+            "Payment",
+            (),
+            {
+                "payment_type": "Registration",
+                "payment_date": date(2026, 1, 31),
+                "amount": 320,
+            },
+        )(),
+        type(
+            "Payment",
+            (),
+            {
+                "payment_type": "Renewal",
+                "payment_date": date(2026, 3, 1),
+                "amount": 240,
+            },
+        )(),
     ]
 
     history = membership_history(member, payments)

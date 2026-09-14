@@ -18,6 +18,7 @@ Base = declarative_base()
 # GYM
 # ============================================================
 
+
 class Gym(Base):
     __tablename__ = "gyms"
 
@@ -72,6 +73,7 @@ class Gym(Base):
 # ============================================================
 # USER
 # ============================================================
+
 
 class User(Base):
     __tablename__ = "users"
@@ -144,6 +146,7 @@ class User(Base):
 # ============================================================
 # MEMBER
 # ============================================================
+
 
 class Member(Base):
     __tablename__ = "members"
@@ -229,10 +232,11 @@ class Member(Base):
             "status IN ('Active', 'Expired')",
             name="ck_members_valid_status",
         ),
-        Index("ix_members_gym_due_date",
-              "gym_id",
-              "payment_due_date",
-              ),
+        Index(
+            "ix_members_gym_due_date",
+            "gym_id",
+            "payment_due_date",
+        ),
         Index(
             "ix_members_gym_full_name",
             "gym_id",
@@ -249,6 +253,7 @@ class Member(Base):
 # ============================================================
 # PAYMENT
 # ============================================================
+
 
 class Payment(Base):
     __tablename__ = "payments"

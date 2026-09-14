@@ -39,12 +39,20 @@ def test_same_idempotency_key_returns_original_payment_without_second_extension(
     original_due_date = member.payment_due_date
 
     first, replayed = MembershipService.renew_membership_transaction(
-        db, gym_id=gym.id, member_id=member.id, amount=120,
-        idempotency_key="renewal-retry", payment_date=date(2026, 9, 8),
+        db,
+        gym_id=gym.id,
+        member_id=member.id,
+        amount=120,
+        idempotency_key="renewal-retry",
+        payment_date=date(2026, 9, 8),
     )
     second, replayed_again = MembershipService.renew_membership_transaction(
-        db, gym_id=gym.id, member_id=member.id, amount=120,
-        idempotency_key="renewal-retry", payment_date=date(2026, 9, 8),
+        db,
+        gym_id=gym.id,
+        member_id=member.id,
+        amount=120,
+        idempotency_key="renewal-retry",
+        payment_date=date(2026, 9, 8),
     )
 
     db.refresh(member)
@@ -60,12 +68,20 @@ def test_different_idempotency_keys_are_distinct_valid_renewals(db):
     member = _member(db, gym)
 
     MembershipService.renew_membership_transaction(
-        db, gym_id=gym.id, member_id=member.id, amount=120,
-        idempotency_key="renewal-one", payment_date=date(2026, 9, 8),
+        db,
+        gym_id=gym.id,
+        member_id=member.id,
+        amount=120,
+        idempotency_key="renewal-one",
+        payment_date=date(2026, 9, 8),
     )
     MembershipService.renew_membership_transaction(
-        db, gym_id=gym.id, member_id=member.id, amount=120,
-        idempotency_key="renewal-two", payment_date=date(2026, 9, 8),
+        db,
+        gym_id=gym.id,
+        member_id=member.id,
+        amount=120,
+        idempotency_key="renewal-two",
+        payment_date=date(2026, 9, 8),
     )
 
     assert db.query(Payment).filter(Payment.member_id == member.id).count() == 2
@@ -77,14 +93,22 @@ def test_idempotency_key_cannot_be_reused_for_a_different_renewal(db):
     second_member = _member(db, gym)
 
     MembershipService.renew_membership_transaction(
-        db, gym_id=gym.id, member_id=first_member.id, amount=120,
-        idempotency_key="reused-key", payment_date=date(2026, 9, 8),
+        db,
+        gym_id=gym.id,
+        member_id=first_member.id,
+        amount=120,
+        idempotency_key="reused-key",
+        payment_date=date(2026, 9, 8),
     )
 
     with pytest.raises(ValueError, match="already used for a different renewal"):
         MembershipService.renew_membership_transaction(
-            db, gym_id=gym.id, member_id=second_member.id, amount=120,
-            idempotency_key="reused-key", payment_date=date(2026, 9, 8),
+            db,
+            gym_id=gym.id,
+            member_id=second_member.id,
+            amount=120,
+            idempotency_key="reused-key",
+            payment_date=date(2026, 9, 8),
         )
 
     assert db.query(Payment).filter(Payment.member_id == second_member.id).count() == 0
@@ -101,8 +125,12 @@ def test_failed_renewal_rolls_back_membership_and_payment(db, monkeypatch):
     monkeypatch.setattr(db, "flush", fail_flush)
     with pytest.raises(RuntimeError, match="simulated write failure"):
         MembershipService.renew_membership_transaction(
-            db, gym_id=gym.id, member_id=member.id, amount=120,
-            idempotency_key="rollback-case", payment_date=date(2026, 9, 8),
+            db,
+            gym_id=gym.id,
+            member_id=member.id,
+            amount=120,
+            idempotency_key="rollback-case",
+            payment_date=date(2026, 9, 8),
         )
 
     db.expire_all()
@@ -118,20 +146,34 @@ def test_idempotency_key_is_unique_per_gym_but_not_across_gyms(db):
     member_b = _member(db, gym_b)
 
     for gym, member in ((gym_a, member_a), (gym_b, member_b)):
-        db.add(Payment(
-            gym_id=gym.id, member_id=member.id, member_name=member.full_name,
-            amount=120, currency="GHS", payment_date=date(2026, 9, 8),
-            membership_type="Monthly", payment_type="Renewal",
-            idempotency_key="same-key",
-        ))
+        db.add(
+            Payment(
+                gym_id=gym.id,
+                member_id=member.id,
+                member_name=member.full_name,
+                amount=120,
+                currency="GHS",
+                payment_date=date(2026, 9, 8),
+                membership_type="Monthly",
+                payment_type="Renewal",
+                idempotency_key="same-key",
+            )
+        )
     db.commit()
 
-    db.add(Payment(
-        gym_id=gym_a.id, member_id=member_a.id, member_name=member_a.full_name,
-        amount=120, currency="GHS", payment_date=date(2026, 9, 8),
-        membership_type="Monthly", payment_type="Renewal",
-        idempotency_key="same-key",
-    ))
+    db.add(
+        Payment(
+            gym_id=gym_a.id,
+            member_id=member_a.id,
+            member_name=member_a.full_name,
+            amount=120,
+            currency="GHS",
+            payment_date=date(2026, 9, 8),
+            membership_type="Monthly",
+            payment_type="Renewal",
+            idempotency_key="same-key",
+        )
+    )
     with pytest.raises(IntegrityError):
         db.commit()
 
@@ -140,14 +182,26 @@ def test_voided_payment_remains_visible_but_is_excluded_from_revenue(db):
     gym = _gym(db)
     member = _member(db, gym)
     completed = Payment(
-        gym_id=gym.id, member_id=member.id, member_name=member.full_name,
-        amount=120, currency="GHS", payment_date=date(2026, 9, 8),
-        membership_type="Monthly", payment_type="Renewal", status="Completed",
+        gym_id=gym.id,
+        member_id=member.id,
+        member_name=member.full_name,
+        amount=120,
+        currency="GHS",
+        payment_date=date(2026, 9, 8),
+        membership_type="Monthly",
+        payment_type="Renewal",
+        status="Completed",
     )
     voided = Payment(
-        gym_id=gym.id, member_id=member.id, member_name=member.full_name,
-        amount=120, currency="GHS", payment_date=date(2026, 9, 8),
-        membership_type="Monthly", payment_type="Renewal", status="Voided",
+        gym_id=gym.id,
+        member_id=member.id,
+        member_name=member.full_name,
+        amount=120,
+        currency="GHS",
+        payment_date=date(2026, 9, 8),
+        membership_type="Monthly",
+        payment_type="Renewal",
+        status="Voided",
     )
     db.add_all([completed, voided])
     db.commit()

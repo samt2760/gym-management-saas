@@ -21,7 +21,13 @@ from app.auth import (
     revoke_all_user_sessions,
     set_session_cookie,
 )
-from app.core.config import PASSWORD_MIN_LENGTH, SESSION_COOKIE_NAME
+from app.core.config import SESSION_COOKIE_NAME
+from app.core.password_policy import PASSWORD_MIN_LENGTH
+from app.core.tenant_context import (
+    bind_tenant_context_to_session,
+    establish_tenant_context,
+    stamp_tenant_context,
+)
 from app.models.user import User, UserSession, hash_password, verify_password
 from app.services.audit_service import record_audit
 from app.services.login_throttle_service import (
@@ -105,9 +111,7 @@ def login(
 
     if not identifier:
         return JSONResponse(
-            {
-                "detail": "Email or username is required."
-            },
+            {"detail": "Email or username is required."},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -117,13 +121,7 @@ def login(
     authentication_email = identifier
 
     if not email:
-        matched_user = (
-            db.query(User)
-            .filter(
-                User.username == identifier
-            )
-            .first()
-        )
+        matched_user = db.query(User).filter(User.username == identifier).first()
 
         if matched_user is not None:
             authentication_email = matched_user.email
@@ -151,9 +149,7 @@ def login(
     if user is None:
         record_failed_login(db, throttle, datetime.now(UTC))
         return JSONResponse(
-            {
-                "detail": "Invalid email or password."
-            },
+            {"detail": "Invalid email or password."},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -163,6 +159,9 @@ def login(
         request,
         commit=False,
     )
+    establish_tenant_context(user.gym_id)
+    bind_tenant_context_to_session(db, user.gym_id)
+    stamp_tenant_context(db)
     clear_login_throttle(db, throttle)
     record_audit(
         db,
@@ -190,9 +189,7 @@ def logout(
     db: Session = Depends(get_db),
     user: User = Depends(require_auth),
 ):
-    token = request.cookies.get(
-        SESSION_COOKIE_NAME
-    )
+    token = request.cookies.get(SESSION_COOKIE_NAME)
 
     if token:
         session = (
@@ -239,11 +236,7 @@ def change_password(
         user.password_hash,
     ):
         return JSONResponse(
-            {
-                "detail": (
-                    "Current password is incorrect."
-                )
-            },
+            {"detail": ("Current password is incorrect.")},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -258,9 +251,7 @@ def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    user.password_hash = hash_password(
-        new_password
-    )
+    user.password_hash = hash_password(new_password)
 
     revoke_all_user_sessions(
         db,
@@ -278,9 +269,7 @@ def change_password(
 
     db.commit()
 
-    return {
-        "detail": "Password updated successfully."
-    }
+    return {"detail": "Password updated successfully."}
 
 
 @router.post("/account/password/reset-request")
@@ -406,6 +395,9 @@ def reset_password(
         )
 
     now = datetime.now(UTC)
+    establish_tenant_context(user.gym_id)
+    bind_tenant_context_to_session(db, user.gym_id)
+    stamp_tenant_context(db)
     user.password_hash = hash_password(new_password)
     reset.used_at = now
     revoke_all_user_sessions(db, user.id, commit=False)

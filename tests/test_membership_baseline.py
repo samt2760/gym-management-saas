@@ -77,7 +77,9 @@ def get_member(db) -> Member:
     return member
 
 
-def test_registration_creates_member_initial_membership_and_registration_payment(client, db):
+def test_registration_creates_member_initial_membership_and_registration_payment(
+    client, db
+):
     configure_gym(client)
     registration_date = date(2026, 1, 31)
 
@@ -92,8 +94,7 @@ def test_registration_creates_member_initial_membership_and_registration_payment
     assert member.email == "ada@example.test"
     assert member.registration_date == registration_date
     assert member.membership_type == "Monthly"
-    assert member.payment_due_date == registration_date + \
-        relativedelta(months=1)
+    assert member.payment_due_date == registration_date + relativedelta(months=1)
     assert member.status == "Expired"
     assert payment.member_id == member.id
     assert payment.member_name == member.full_name
@@ -124,14 +125,14 @@ def test_registration_requires_configured_positive_monthly_fee(client, db):
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "error": "Gym pricing is not configured correctly."
-    }
+    assert response.json() == {"error": "Gym pricing is not configured correctly."}
     assert db.query(Member).count() == 0
     assert db.query(Payment).count() == 0
 
 
-def test_single_month_renewal_creates_payment_and_extends_from_current_due_date(client, db):
+def test_single_month_renewal_creates_payment_and_extends_from_current_due_date(
+    client, db
+):
     configure_gym(client)
     register_member(client)
     member = get_member(db)
@@ -147,8 +148,7 @@ def test_single_month_renewal_creates_payment_and_extends_from_current_due_date(
     payments = db.query(Payment).order_by(Payment.id).all()
 
     assert response.status_code == 303
-    assert member.payment_due_date == original_due_date + \
-        relativedelta(months=1)
+    assert member.payment_due_date == original_due_date + relativedelta(months=1)
     assert member.status == "Active"
     assert len(payments) == 2
     assert payments[-1].amount == MONTHLY_FEE
@@ -173,14 +173,15 @@ def test_multi_month_renewal_extends_membership_by_paid_months(client, db):
     renewal = db.query(Payment).order_by(Payment.id.desc()).first()
 
     assert response.status_code == 303
-    assert member.payment_due_date == original_due_date + \
-        relativedelta(months=3)
+    assert member.payment_due_date == original_due_date + relativedelta(months=3)
     assert renewal.amount == MONTHLY_FEE * 3
     assert renewal.payment_type == "Renewal"
 
 
 @pytest.mark.parametrize("amount", [0, -120, 1, 119, 121, 180])
-def test_invalid_renewal_amount_does_not_change_membership_or_create_payment(client, db, amount):
+def test_invalid_renewal_amount_does_not_change_membership_or_create_payment(
+    client, db, amount
+):
     configure_gym(client)
     register_member(client)
     member = get_member(db)
@@ -220,8 +221,7 @@ def test_expired_member_renewal_restarts_from_today(client, db):
     db.refresh(member)
 
     assert response.status_code == 303
-    assert member.payment_due_date == datetime.now(
-        UTC).date() + relativedelta(months=2)
+    assert member.payment_due_date == datetime.now(UTC).date() + relativedelta(months=2)
     assert member.status == "Active"
 
 
@@ -362,7 +362,5 @@ def test_gym_settings_update_pricing_and_reject_invalid_monthly_fee(client, db):
     db.refresh(gym)
 
     assert response.status_code == 200
-    assert response.json() == {
-        "error": "Monthly renewal fee must be greater than zero"
-    }
+    assert response.json() == {"error": "Monthly renewal fee must be greater than zero"}
     assert gym.monthly_fee == MONTHLY_FEE

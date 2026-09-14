@@ -23,7 +23,9 @@ def registration_payment(
     )
 
 
-def renewal_payment(gym: Gym, member: Member, amount: int, payment_date: date) -> Payment:
+def renewal_payment(
+    gym: Gym, member: Member, amount: int, payment_date: date
+) -> Payment:
     return Payment(
         gym_id=gym.id,
         member_id=member.id,

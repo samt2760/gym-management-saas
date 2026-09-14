@@ -20,13 +20,7 @@ def dashboard(
 ):
     today = datetime.now(UTC).date()
 
-    gym = (
-        db.query(Gym)
-        .filter(
-            Gym.id == user.gym_id
-        )
-        .first()
-    )
+    gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 
     update_member_status(db, user.gym_id)
 
@@ -75,9 +69,7 @@ def dashboard(
 
     all_payments = (
         db.query(Payment)
-        .filter(
-            Payment.gym_id == user.gym_id
-        )
+        .filter(Payment.gym_id == user.gym_id)
         .order_by(
             Payment.payment_date.desc(),
             Payment.id.desc(),
@@ -115,6 +107,6 @@ def dashboard(
             "total_collected": total_collected,
             "today_revenue": today_revenue,
             "month_revenue": month_revenue,
-                "current_user": user,
+            "current_user": user,
         },
     )

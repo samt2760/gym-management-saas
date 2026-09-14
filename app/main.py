@@ -44,9 +44,7 @@ def _get_allowed_hosts() -> list[str]:
             raise RuntimeError("ALLOWED_HOSTS contains an invalid production host.")
 
     if ENVIRONMENT == "production":
-        raise RuntimeError(
-            "ALLOWED_HOSTS must be configured in production."
-        )
+        raise RuntimeError("ALLOWED_HOSTS must be configured in production.")
 
     return [
         "localhost",
@@ -78,9 +76,7 @@ def _apply_security_headers(response) -> None:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
-        title="Gym Management System"
-    )
+    app = FastAPI(title="Gym Management System")
 
     # ---------------------------------------------------------
     # Trusted host protection
@@ -102,9 +98,7 @@ def create_app() -> FastAPI:
         request: Request,
         call_next,
     ):
-        csrf_cookie = request.cookies.get(
-            CSRF_COOKIE_NAME
-        )
+        csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)
 
         if csrf_cookie is None:
             csrf_cookie = create_csrf_token()
@@ -147,15 +141,10 @@ def create_app() -> FastAPI:
                     next_path = request.url.path
 
                     if request.url.query:
-                        next_path = (
-                            f"{next_path}?{request.url.query}"
-                        )
+                        next_path = f"{next_path}?{request.url.query}"
 
                     response = RedirectResponse(
-                        url=(
-                            "/login?next="
-                            f"{quote(next_path, safe='')}"
-                        ),
+                        url=(f"/login?next={quote(next_path, safe='')}"),
                         status_code=307,
                     )
 
@@ -185,8 +174,7 @@ def create_app() -> FastAPI:
         csrf_exempt_paths: set[str] = set()
 
         if (
-            request.method
-            in {"POST", "PUT", "PATCH", "DELETE"}
+            request.method in {"POST", "PUT", "PATCH", "DELETE"}
             and request.url.path not in csrf_exempt_paths
         ):
             body = await request.body()
@@ -204,28 +192,17 @@ def create_app() -> FastAPI:
                 [],
             )
 
-            submitted_token = (
-                submitted_tokens[0]
-                if submitted_tokens
-                else None
-            )
+            submitted_token = submitted_tokens[0] if submitted_tokens else None
 
-            if (
-                not isinstance(
-                    submitted_token,
-                    str,
-                )
-                or not verify_csrf_token(
-                    submitted_token,
-                    csrf_cookie,
-                )
+            if not isinstance(
+                submitted_token,
+                str,
+            ) or not verify_csrf_token(
+                submitted_token,
+                csrf_cookie,
             ):
                 response = JSONResponse(
-                    {
-                        "detail": (
-                            "Invalid or missing CSRF token."
-                        )
-                    },
+                    {"detail": ("Invalid or missing CSRF token.")},
                     status_code=403,
                 )
                 _apply_security_headers(response)

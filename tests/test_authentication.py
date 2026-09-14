@@ -202,9 +202,7 @@ def test_login_rejects_invalid_credentials_without_disclosing_user_presence(
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert response.json() == {
-        "detail": "Invalid email or password."
-    }
+    assert response.json() == {"detail": "Invalid email or password."}
     assert "admin" not in response.text.lower()
     assert "wrong-password" not in response.text.lower()
 
@@ -237,9 +235,7 @@ def test_users_without_members_create_permission_cannot_view_registration_page(
     response = public_client.get("/register", follow_redirects=False)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json() == {
-        "detail": "Permission denied."
-    }
+    assert response.json() == {"detail": "Permission denied."}
 
 
 def test_password_change_requires_current_password_and_updates_hash(
@@ -261,9 +257,7 @@ def test_password_change_requires_current_password_and_updates_hash(
     db.refresh(user)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {
-        "detail": "Password updated successfully."
-    }
+    assert response.json() == {"detail": "Password updated successfully."}
     assert user.password_hash.startswith("$argon2")
 
 
@@ -307,7 +301,6 @@ def test_users_without_members_delete_permission_cannot_delete_members(
         app,
         base_url="https://testserver",
     ) as owner_client:
-
         response = _login(owner_client, "member-owner")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
@@ -345,7 +338,6 @@ def test_users_without_members_delete_permission_cannot_delete_members(
         app,
         base_url="https://testserver",
     ) as receptionist_client:
-
         response = _login(receptionist_client, "receptionist")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
@@ -357,9 +349,7 @@ def test_users_without_members_delete_permission_cannot_delete_members(
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {
-            "detail": "Permission denied."
-        }
+        assert response.json() == {"detail": "Permission denied."}
 
 
 def test_users_without_settings_edit_permission_cannot_update_gym_settings(
@@ -390,9 +380,7 @@ def test_users_without_settings_edit_permission_cannot_update_gym_settings(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json() == {
-        "detail": "Permission denied."
-    }
+    assert response.json() == {"detail": "Permission denied."}
 
 
 def test_gym_a_user_cannot_access_gym_b_member_or_payment(
@@ -407,7 +395,8 @@ def test_gym_a_user_cannot_access_gym_b_member_or_payment(
         username="gym_a_owner",
         password="StrongPass!123",
         role="OWNER",
-        gym=gym_a,)
+        gym=gym_a,
+    )
 
     _create_user(
         db,
@@ -450,7 +439,6 @@ def test_gym_a_user_cannot_access_gym_b_member_or_payment(
         app,
         base_url="https://testserver",
     ) as gym_a_client:
-
         response = _login(gym_a_client, "gym_a_owner")
 
         assert response.status_code == status.HTTP_303_SEE_OTHER
@@ -461,9 +449,7 @@ def test_gym_a_user_cannot_access_gym_b_member_or_payment(
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {
-            "detail": "Access denied."
-        }
+        assert response.json() == {"detail": "Access denied."}
 
         response = _post(
             gym_a_client,
@@ -472,9 +458,7 @@ def test_gym_a_user_cannot_access_gym_b_member_or_payment(
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {
-            "detail": "Access denied."
-        }
+        assert response.json() == {"detail": "Access denied."}
 
         response = gym_a_client.get(
             "/payments",

@@ -136,7 +136,8 @@ def _create_current_schema() -> None:
         sa.Column("member_name", sa.String(), nullable=False),
         sa.Column("amount", sa.Integer(), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False),
-        sa.Column("payment_date", sa.Date(), nullable=False), sa.Column(
+        sa.Column("payment_date", sa.Date(), nullable=False),
+        sa.Column(
             "membership_type",
             sa.String(),
             nullable=False,
@@ -213,10 +214,7 @@ def _upgrade_legacy_schema() -> None:
     # GYMS
     # ---------------------------------------------------------
 
-    gym_columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("gyms")
-    }
+    gym_columns = {column["name"] for column in sa.inspect(bind).get_columns("gyms")}
 
     if "created_at" not in gym_columns:
         op.add_column(
@@ -299,8 +297,7 @@ def _upgrade_legacy_schema() -> None:
     # MEMBERS
     # ---------------------------------------------------------
     member_columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("members")
+        column["name"] for column in sa.inspect(bind).get_columns("members")
     }
 
     if "gym_id" not in member_columns:
@@ -363,8 +360,7 @@ def _upgrade_legacy_schema() -> None:
     # ---------------------------------------------------------
 
     payment_columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("payments")
+        column["name"] for column in sa.inspect(bind).get_columns("payments")
     }
 
     if "gym_id" not in payment_columns:
@@ -438,39 +434,30 @@ def _upgrade_legacy_schema() -> None:
     # ---------------------------------------------------------
 
     remaining_members = bind.execute(
-        sa.text(
-            "SELECT COUNT(*) FROM members WHERE gym_id IS NULL"
-        )
+        sa.text("SELECT COUNT(*) FROM members WHERE gym_id IS NULL")
     ).scalar_one()
 
     if remaining_members:
         raise RuntimeError(
-            f"Migration aborted: {remaining_members} member(s) "
-            "have NULL gym_id."
+            f"Migration aborted: {remaining_members} member(s) have NULL gym_id."
         )
 
     remaining_payments = bind.execute(
-        sa.text(
-            "SELECT COUNT(*) FROM payments WHERE gym_id IS NULL"
-        )
+        sa.text("SELECT COUNT(*) FROM payments WHERE gym_id IS NULL")
     ).scalar_one()
 
     if remaining_payments:
         raise RuntimeError(
-            f"Migration aborted: {remaining_payments} payment(s) "
-            "have NULL gym_id."
+            f"Migration aborted: {remaining_payments} payment(s) have NULL gym_id."
         )
 
     remaining_currency = bind.execute(
-        sa.text(
-            "SELECT COUNT(*) FROM payments WHERE currency IS NULL"
-        )
+        sa.text("SELECT COUNT(*) FROM payments WHERE currency IS NULL")
     ).scalar_one()
 
     if remaining_currency:
         raise RuntimeError(
-            f"Migration aborted: {remaining_currency} payment(s) "
-            "have NULL currency."
+            f"Migration aborted: {remaining_currency} payment(s) have NULL currency."
         )
 
     # ---------------------------------------------------------
@@ -618,9 +605,10 @@ def _upgrade_legacy_schema() -> None:
             ["gym_id", "payment_due_date"],
         )
 
-        batch_op.create_index("ix_members_gym_full_name",
-                              ["gym_id", "full_name"],
-                              )
+        batch_op.create_index(
+            "ix_members_gym_full_name",
+            ["gym_id", "full_name"],
+        )
 
         batch_op.create_index(
             "ix_members_gym_phone",

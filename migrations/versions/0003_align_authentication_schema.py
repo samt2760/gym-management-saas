@@ -125,10 +125,7 @@ def _upgrade_users_table(bind) -> None:
         _create_users_table(bind)
         return
 
-    columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("users")
-    }
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
 
     # ---------------------------------------------------------
     # Username
@@ -144,22 +141,24 @@ def _upgrade_users_table(bind) -> None:
             ),
         )
 
-        users = bind.execute(
-            sa.text(
-                """
+        users = (
+            bind.execute(
+                sa.text(
+                    """
                 SELECT id, email
                 FROM users
                 ORDER BY id
                 """
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
         used_usernames: set[str] = set()
 
         for user in users:
-            email = (
-                user["email"] or ""
-            ).strip().lower()
+            email = (user["email"] or "").strip().lower()
 
             base_username = email.split(
                 "@",
@@ -167,23 +166,16 @@ def _upgrade_users_table(bind) -> None:
             )[0]
 
             if not base_username:
-                base_username = (
-                    f"user{user['id']}"
-                )
+                base_username = f"user{user['id']}"
 
             base_username = "".join(
                 character
                 for character in base_username
-                if (
-                    character.isalnum()
-                    or character in "._-"
-                )
+                if (character.isalnum() or character in "._-")
             )
 
             if not base_username:
-                base_username = (
-                    f"user{user['id']}"
-                )
+                base_username = f"user{user['id']}"
                 base_username = base_username[:64]
 
             username = base_username
@@ -192,10 +184,7 @@ def _upgrade_users_table(bind) -> None:
             while username in used_usernames:
                 suffix_text = f"-{suffix}"
 
-                username = (
-                    f"{base_username[:64 - len(suffix_text)]}"
-                    f"{suffix_text}"
-                )
+                username = f"{base_username[: 64 - len(suffix_text)]}{suffix_text}"
 
                 suffix += 1
 
@@ -219,10 +208,7 @@ def _upgrade_users_table(bind) -> None:
     # Status
     # ---------------------------------------------------------
 
-    columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("users")
-    }
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
 
     if "status" not in columns:
         op.add_column(
@@ -262,10 +248,7 @@ def _upgrade_users_table(bind) -> None:
     # Superuser
     # ---------------------------------------------------------
 
-    columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("users")
-    }
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
 
     if "is_superuser" not in columns:
         op.add_column(
@@ -294,10 +277,7 @@ def _upgrade_users_table(bind) -> None:
     # Last login
     # ---------------------------------------------------------
 
-    columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("users")
-    }
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
 
     if "last_login" not in columns:
         op.add_column(
@@ -313,10 +293,7 @@ def _upgrade_users_table(bind) -> None:
     # Timestamp columns
     # ---------------------------------------------------------
 
-    columns = {
-        column["name"]
-        for column in sa.inspect(bind).get_columns("users")
-    }
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
 
     if "created_at" not in columns:
         op.add_column(
@@ -348,13 +325,14 @@ def _upgrade_users_table(bind) -> None:
             ),
         )
 
-        bind.execute(sa.text(
-            """
+        bind.execute(
+            sa.text(
+                """
                 UPDATE users
                 SET updated_at = CURRENT_TIMESTAMP
                 WHERE updated_at IS NULL
                 """
-        )
+            )
         )
 
     # ---------------------------------------------------------
@@ -423,8 +401,7 @@ def _upgrade_users_table(bind) -> None:
 
     if missing_created:
         raise RuntimeError(
-            f"Migration aborted: {missing_created} "
-            "user(s) have no created_at value."
+            f"Migration aborted: {missing_created} user(s) have no created_at value."
         )
 
     missing_updated = bind.execute(
@@ -439,8 +416,7 @@ def _upgrade_users_table(bind) -> None:
 
     if missing_updated:
         raise RuntimeError(
-            f"Migration aborted: {missing_updated} "
-            "user(s) have no updated_at value."
+            f"Migration aborted: {missing_updated} user(s) have no updated_at value."
         )
 
     # ---------------------------------------------------------
@@ -457,7 +433,6 @@ def _upgrade_users_table(bind) -> None:
         "users",
         recreate="always",
     ) as batch_op:
-
         if has_legacy_role_constraint:
             batch_op.drop_constraint(
                 "ck_users_valid_role",
@@ -533,8 +508,7 @@ def _upgrade_users_table(bind) -> None:
             )
 
     existing_indexes = {
-        index["name"]
-        for index in sa.inspect(bind).get_indexes("users")
+        index["name"] for index in sa.inspect(bind).get_indexes("users")
     }
 
     if "ix_users_email" not in existing_indexes:
@@ -681,7 +655,8 @@ def _create_auth_tables(bind) -> None:
             ),
             sa.Column(
                 "created_at",
-                TIMESTAMP, nullable=False,
+                TIMESTAMP,
+                nullable=False,
                 server_default=sa.func.current_timestamp(),
             ),
             sa.Column(
@@ -729,11 +704,7 @@ def _upgrade_member_status_constraint(bind) -> None:
         op.create_check_constraint(
             "ck_members_valid_status",
             "members",
-            (
-                "status IN "
-                "('Active', 'Expired', "
-                "'Frozen', 'Cancelled')"
-            ),
+            ("status IN ('Active', 'Expired', 'Frozen', 'Cancelled')"),
         )
 
     else:
@@ -741,7 +712,6 @@ def _upgrade_member_status_constraint(bind) -> None:
             "members",
             recreate="always",
         ) as batch_op:
-
             batch_op.drop_constraint(
                 "ck_members_valid_status",
                 type_="check",
@@ -749,11 +719,7 @@ def _upgrade_member_status_constraint(bind) -> None:
 
             batch_op.create_check_constraint(
                 "ck_members_valid_status",
-                (
-                    "status IN "
-                    "('Active', 'Expired', "
-                    "'Frozen', 'Cancelled')"
-                ),
+                ("status IN ('Active', 'Expired', 'Frozen', 'Cancelled')"),
             )
 
 
@@ -764,16 +730,10 @@ def upgrade() -> None:
         bind,
         "gyms",
     ):
-        raise RuntimeError(
-            "Migration aborted: the gyms table does not exist."
-        )
+        raise RuntimeError("Migration aborted: the gyms table does not exist.")
 
     if bind.dialect.name == "sqlite":
-        bind.execute(
-            sa.text(
-                "PRAGMA foreign_keys=OFF"
-            )
-        )
+        bind.execute(sa.text("PRAGMA foreign_keys=OFF"))
 
     try:
         _upgrade_users_table(bind)
@@ -782,11 +742,7 @@ def upgrade() -> None:
 
     finally:
         if bind.dialect.name == "sqlite":
-            bind.execute(
-                sa.text(
-                    "PRAGMA foreign_keys=ON"
-                )
-            )
+            bind.execute(sa.text("PRAGMA foreign_keys=ON"))
 
 
 def downgrade() -> None:

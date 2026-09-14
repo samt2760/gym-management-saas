@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import SECRET_KEY, TEMPLATES_DIRECTORY
 from app.core.database import SessionLocal
+from app.core.tenant_context import clear_tenant_context
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIRECTORY))
 
@@ -71,3 +72,4 @@ def get_db() -> Generator[Session]:
         yield db
     finally:
         db.close()
+        clear_tenant_context()

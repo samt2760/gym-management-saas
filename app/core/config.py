@@ -3,28 +3,13 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-from dotenv import load_dotenv
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-load_dotenv(PROJECT_ROOT / ".env")
+from app.core.database_settings import DATABASE_URL, PROJECT_ROOT
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    if ENVIRONMENT == "production":
-        raise RuntimeError(
-            "DATABASE_URL must be set in production."
-        )
-    DATABASE_URL = "sqlite:///./gym.db"
-
 if ENVIRONMENT == "production" and DATABASE_URL.startswith("sqlite"):
-    raise RuntimeError(
-        "Production deployments must use a PostgreSQL DATABASE_URL."
-    )
+    raise RuntimeError("Production deployments must use a PostgreSQL DATABASE_URL.")
 
 SECRET_KEY = os.getenv("SESSION_SECRET")
 
@@ -48,10 +33,6 @@ SESSION_TTL_SECONDS = int(
     )
 )
 
-DATABASE_CONNECT_TIMEOUT_SECONDS = int(
-    os.getenv("DATABASE_CONNECT_TIMEOUT_SECONDS", "10")
-)
-
 SESSION_COOKIE_SECURE = (
     os.getenv(
         "SESSION_COOKIE_SECURE",
@@ -61,20 +42,11 @@ SESSION_COOKIE_SECURE = (
 )
 
 if ENVIRONMENT == "production" and not SESSION_COOKIE_SECURE:
-    raise RuntimeError(
-        "SESSION_COOKIE_SECURE must be true in production."
-    )
+    raise RuntimeError("SESSION_COOKIE_SECURE must be true in production.")
 
 SESSION_COOKIE_SAME_SITE = os.getenv(
     "SESSION_COOKIE_SAME_SITE",
     "lax",
-)
-
-PASSWORD_MIN_LENGTH = int(
-    os.getenv(
-        "PASSWORD_MIN_LENGTH",
-        "12",
-    )
 )
 
 MAX_LOGIN_ATTEMPTS = int(

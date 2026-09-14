@@ -55,18 +55,26 @@ def test_registration_and_renewal_audit_actor_tenant_and_targets(client, db):
     )
     assert created.status_code == 303
     member = db.query(Member).filter(Member.full_name == "Audited Member").one()
-    registration_payment = db.query(Payment).filter(Payment.member_id == member.id).one()
+    registration_payment = (
+        db.query(Payment).filter(Payment.member_id == member.id).one()
+    )
 
-    registration_events = db.query(AuditLog).filter(
-        AuditLog.gym_id == gym.id,
-        AuditLog.action.in_(["member.created", "payment.created"]),
-    ).all()
+    registration_events = (
+        db.query(AuditLog)
+        .filter(
+            AuditLog.gym_id == gym.id,
+            AuditLog.action.in_(["member.created", "payment.created"]),
+        )
+        .all()
+    )
     assert {event.action for event in registration_events} == {
-        "member.created", "payment.created"
+        "member.created",
+        "payment.created",
     }
     assert all(event.actor_user_id == user.id for event in registration_events)
     assert {event.resource_id for event in registration_events} == {
-        member.id, registration_payment.id
+        member.id,
+        registration_payment.id,
     }
 
     renewed = _csrf_post(
@@ -76,17 +84,25 @@ def test_registration_and_renewal_audit_actor_tenant_and_targets(client, db):
         follow_redirects=False,
     )
     assert renewed.status_code == 303
-    renewal_payment = db.query(Payment).filter(
-        Payment.idempotency_key == "audited-renewal"
-    ).one()
-    renewal_events = db.query(AuditLog).filter(
-        AuditLog.action.in_(["membership.renewed", "payment.created"]),
-        AuditLog.resource_id.in_([member.id, renewal_payment.id]),
-    ).all()
+    renewal_payment = (
+        db.query(Payment).filter(Payment.idempotency_key == "audited-renewal").one()
+    )
+    renewal_events = (
+        db.query(AuditLog)
+        .filter(
+            AuditLog.action.in_(["membership.renewed", "payment.created"]),
+            AuditLog.resource_id.in_([member.id, renewal_payment.id]),
+        )
+        .all()
+    )
     assert {event.action for event in renewal_events} == {
-        "membership.renewed", "payment.created"
+        "membership.renewed",
+        "payment.created",
     }
-    assert all(event.gym_id == gym.id and event.actor_user_id == user.id for event in renewal_events)
+    assert all(
+        event.gym_id == gym.id and event.actor_user_id == user.id
+        for event in renewal_events
+    )
 
     before_failed_renewal = db.query(AuditLog).count()
     failed = _csrf_post(
@@ -99,7 +115,9 @@ def test_registration_and_renewal_audit_actor_tenant_and_targets(client, db):
 
 
 def test_rolled_back_renewal_does_not_leave_audit_event(db, monkeypatch):
-    gym = Gym(name="Rollback Audit Gym", currency="GHS", registration_fee=20, monthly_fee=120)
+    gym = Gym(
+        name="Rollback Audit Gym", currency="GHS", registration_fee=20, monthly_fee=120
+    )
     db.add(gym)
     db.commit()
     actor = _create_user(db, gym, "rollback-auditor")
@@ -115,11 +133,17 @@ def test_rolled_back_renewal_does_not_leave_audit_event(db, monkeypatch):
     db.add(member)
     db.commit()
 
-    monkeypatch.setattr(db, "flush", lambda: (_ for _ in ()).throw(RuntimeError("flush failed")))
+    monkeypatch.setattr(
+        db, "flush", lambda: (_ for _ in ()).throw(RuntimeError("flush failed"))
+    )
     with pytest.raises(RuntimeError, match="flush failed"):
         MembershipService.renew_membership_transaction(
-            db, gym_id=gym.id, member_id=member.id, amount=120,
-            idempotency_key="rollback-audit", actor=actor,
+            db,
+            gym_id=gym.id,
+            member_id=member.id,
+            amount=120,
+            idempotency_key="rollback-audit",
+            actor=actor,
         )
 
     db.expire_all()
@@ -128,7 +152,12 @@ def test_rolled_back_renewal_does_not_leave_audit_event(db, monkeypatch):
 
 
 def test_authentication_audit_events_do_not_store_credentials(public_client, db):
-    gym = Gym(name="Authentication Audit Gym", currency="GHS", registration_fee=0, monthly_fee=0)
+    gym = Gym(
+        name="Authentication Audit Gym",
+        currency="GHS",
+        registration_fee=0,
+        monthly_fee=0,
+    )
     db.add(gym)
     db.commit()
     user = _create_user(db, gym, "audit-login-user")
@@ -141,23 +170,36 @@ def test_authentication_audit_events_do_not_store_credentials(public_client, db)
         follow_redirects=False,
     )
     assert response.status_code == 303
-    login_event = db.query(AuditLog).filter(
-        AuditLog.action == "auth.login_succeeded", AuditLog.actor_user_id == user.id
-    ).one()
+    login_event = (
+        db.query(AuditLog)
+        .filter(
+            AuditLog.action == "auth.login_succeeded", AuditLog.actor_user_id == user.id
+        )
+        .one()
+    )
     assert login_event.gym_id == gym.id
     assert login_event.resource_id == user.id
     assert "StrongPass!123" not in str(login_event.details)
 
     response = _csrf_post(public_client, "/logout", {}, follow_redirects=False)
     assert response.status_code == 303
-    assert db.query(AuditLog).filter(
-        AuditLog.action == "auth.logout", AuditLog.actor_user_id == user.id
-    ).count() == 1
+    assert (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "auth.logout", AuditLog.actor_user_id == user.id)
+        .count()
+        == 1
+    )
 
 
-def test_cross_gym_member_mutations_reporting_and_audit_access_are_isolated(public_client, db):
-    gym_a = Gym(name="Audit Gym A", currency="GHS", registration_fee=20, monthly_fee=120)
-    gym_b = Gym(name="Audit Gym B", currency="GHS", registration_fee=20, monthly_fee=120)
+def test_cross_gym_member_mutations_reporting_and_audit_access_are_isolated(
+    public_client, db
+):
+    gym_a = Gym(
+        name="Audit Gym A", currency="GHS", registration_fee=20, monthly_fee=120
+    )
+    gym_b = Gym(
+        name="Audit Gym B", currency="GHS", registration_fee=20, monthly_fee=120
+    )
     db.add_all([gym_a, gym_b])
     db.commit()
     user_a = _create_user(db, gym_a, "audit-gym-a")
@@ -180,17 +222,29 @@ def test_cross_gym_member_mutations_reporting_and_audit_access_are_isolated(publ
         login = _csrf_post(
             gym_a_client,
             "/login",
-            {"username": user_a.username, "password": "StrongPass!123", "next": "/dashboard"},
+            {
+                "username": user_a.username,
+                "password": "StrongPass!123",
+                "next": "/dashboard",
+            },
             follow_redirects=False,
         )
         assert login.status_code == 303
         for url, data in (
-            (f"/members/{member_b.id}/edit", {
-                "full_name": "Changed", "phone": "0240000002", "registration_date": "2026-01-01"
-            }),
+            (
+                f"/members/{member_b.id}/edit",
+                {
+                    "full_name": "Changed",
+                    "phone": "0240000002",
+                    "registration_date": "2026-01-01",
+                },
+            ),
             (f"/members/{member_b.id}/delete", {}),
             (f"/members/{member_b.id}/restore", {}),
-            (f"/members/{member_b.id}/renew", {"amount": "120", "idempotency_key": "gym-b-key"}),
+            (
+                f"/members/{member_b.id}/renew",
+                {"amount": "120", "idempotency_key": "gym-b-key"},
+            ),
         ):
             result = _csrf_post(gym_a_client, url, data, follow_redirects=False)
             assert result.status_code == 403
@@ -206,7 +260,11 @@ def test_cross_gym_member_mutations_reporting_and_audit_access_are_isolated(publ
         login = _csrf_post(
             gym_b_client,
             "/login",
-            {"username": user_b.username, "password": "StrongPass!123", "next": "/dashboard"},
+            {
+                "username": user_b.username,
+                "password": "StrongPass!123",
+                "next": "/dashboard",
+            },
             follow_redirects=False,
         )
         assert login.status_code == 303

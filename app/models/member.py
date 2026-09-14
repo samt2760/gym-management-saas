@@ -18,10 +18,13 @@ from app.models.mixins import TimestampMixin
 class Member(TimestampMixin, Base):
     __tablename__ = "members"
     __table_args__ = (
-        CheckConstraint("membership_type = 'Monthly'",
-                        name="ck_members_monthly_membership"),
-        CheckConstraint("status IN ('Active', 'Expired', 'Frozen', 'Cancelled')",
-                        name="ck_members_valid_status"),
+        CheckConstraint(
+            "membership_type = 'Monthly'", name="ck_members_monthly_membership"
+        ),
+        CheckConstraint(
+            "status IN ('Active', 'Expired', 'Frozen', 'Cancelled')",
+            name="ck_members_valid_status",
+        ),
         Index("ix_members_gym_due_date", "gym_id", "payment_due_date"),
         Index("ix_members_gym_full_name", "gym_id", "full_name"),
         Index("ix_members_gym_phone", "gym_id", "phone"),
@@ -29,8 +32,7 @@ class Member(TimestampMixin, Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    gym_id = Column(Integer, ForeignKey(
-        "gyms.id", ondelete="RESTRICT"), nullable=False)
+    gym_id = Column(Integer, ForeignKey("gyms.id", ondelete="RESTRICT"), nullable=False)
     full_name = Column(String, nullable=False)
     phone = Column(String, nullable=False)
     email = Column(String, nullable=True)

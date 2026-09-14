@@ -9,14 +9,10 @@ try:
     conn.execute("PRAGMA foreign_keys = OFF")
 
     # Safety check
-    version = conn.execute(
-        "SELECT version_num FROM alembic_version"
-    ).fetchone()
+    version = conn.execute("SELECT version_num FROM alembic_version").fetchone()
 
     if not version or version[0] != "0001_database_hardening":
-        raise RuntimeError(
-            f"Unexpected Alembic version: {version}"
-        )
+        raise RuntimeError(f"Unexpected Alembic version: {version}")
 
     # Preserve existing payment data.
     conn.execute("""

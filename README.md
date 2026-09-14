@@ -59,14 +59,14 @@ Never reset the database, downgrade migrations, or run destructive SQL as part o
 
 ### Controlled schema release gate
 
-The current repository head is `0007_login_throttles`. Inspect the configured database and repository before a release:
+The current repository head is `0008_payment_legacy_association`. Inspect the configured database and repository before a release:
 
 ```powershell
 docker compose run --rm --no-deps web python -m alembic current
 python -m alembic heads
 ```
 
-The currently deployed local database is intentionally still at `0004_align_authentication_token_columns`; pending migrations are `0005_payment_renewal_integrity`, `0006_audit_trail`, and `0007_login_throttles`. Do not run them against the live database until a rehearsal has passed.
+The currently deployed local database is intentionally still at `0004_align_authentication_token_columns`; pending migrations are `0005_payment_renewal_integrity`, `0006_audit_trail`, `0007_login_throttles`, and `0008_payment_legacy_association`. Do not run them against the live database until a rehearsal has passed.
 
 First create and retain a pre-deployment custom-format backup, then rehearse the exact release image and migration chain against a named disposable restore:
 
@@ -104,7 +104,7 @@ python scripts/postgres_backup.py backup --output backups/gym-management-2026-09
 
 `pg_dump` success alone is not enough. Verify every backup by restoring it to an explicitly named, disposable database. The command refuses the configured live application database, validates that the archive is readable, restores it, checks counts for every current operational table, detects members without a gym and payments, sessions, or reset tokens without a corresponding parent record, and reports the restored Alembic revision.
 
-The current historical archive contains one documented pre-linkage exception: payment `9` has no `member_id`, while its immutable ledger facts remain `member_name=saas`, `200 GHS`, `2026-08-28`, and `Registration`. Recovery verification permits only that exact row (or no unlinked rows after a future approved repair); any additional or altered unlinked payment fails verification. It is not deleted, changed, counted as a normal member relationship, or treated as permission to create new unlinked payments. The planned archived-legacy-member migration remains the long-term repair.
+The current historical archive contains one documented pre-linkage exception: payment `9` has no `member_id`, while its immutable ledger facts remain `member_name=saas`, `200 GHS`, `2026-08-28`, and `Registration`. Recovery verification permits only that exact row (or no unlinked rows after the approved repair); any additional or altered unlinked payment fails verification. It is not deleted, changed, counted as a normal member relationship, or treated as permission to create new unlinked payments. Migration `0008_payment_legacy_association` repairs it by creating a tenant-scoped archived legacy-member record and linking the payment to that record while preserving the ledger facts.
 
 ```powershell
 python scripts/postgres_backup.py verify-restore `
@@ -132,3 +132,47 @@ Operational recommendations, not repository automation: schedule at least daily 
 - Run migrations as a reviewed deployment step, separately from application startup.
 - Use an immutable image tag for a release instead of the local `dev` default: `$env:IMAGE_TAG = "<release-tag>"; docker compose up -d`.
 - This repository provides deployment structure and checks; it does not deploy to a production server.
+
+## First production owner bootstrap
+
+After a **fresh** PostgreSQL database has been migrated to the current Alembic
+head, an operator must create the initial gym and owner before the web
+application can accept a login. This is a one-shot, operator-only command; it
+is not an HTTP endpoint and it does not run during application startup.
+
+Use separate database identities:
+
+- The schema-owner/migrator role owns application tables and runs Alembic.
+- A tightly held bootstrap-operator role has `BYPASSRLS` solely because an
+  empty database has no tenant context with which to insert the first
+  FORCE-RLS-protected `gyms` row. It must not be used by the web service.
+- The web runtime role remains `LOGIN`, `NOSUPERUSER`, `NOBYPASSRLS`,
+  `NOCREATEDB`, and `NOCREATEROLE`, with only its reviewed application grants.
+
+The bootstrap operator supplies the gym name, ISO currency, integer minor-unit
+fees, owner username, owner email, and a strong password. Inject
+`BOOTSTRAP_OWNER_PASSWORD` only through the operator's approved secret channel,
+or enter it at the non-echoing prompt. Do not put it in a repository file,
+shell history, image, or deployment environment for the web service.
+
+```powershell
+python scripts/bootstrap_first_owner.py `
+  --confirm INITIALIZE_EMPTY_DATABASE `
+  --gym-name "Example Gym" `
+  --currency GHS `
+  --registration-fee 0 `
+  --monthly-fee 12000 `
+  --username owner `
+  --email owner@example.invalid
+```
+
+The command requires the controlled PostgreSQL bootstrap role and refuses if
+*any* gym or user already exists. It hashes the supplied password with the
+application's existing password hasher, commits the gym and owner atomically,
+and prints only created record IDs. A failure rolls back the whole operation.
+Verify success by logging in over HTTPS, opening `/dashboard`, and confirming
+the initial encrypted backup has restored successfully. Remove the injected
+bootstrap password immediately after use and revoke or disable the temporary
+bootstrap operator according to the production access procedure; the command
+will remain harmless against an initialized database because it refuses a
+second invocation.

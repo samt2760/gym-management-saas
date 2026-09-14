@@ -49,8 +49,7 @@ def client(db) -> Generator[TestClient]:
 
     gym = db.query(Gym).filter(Gym.name == "Primary Gym").first()
     if gym is None:
-        gym = Gym(name="Primary Gym", currency="GHS",
-                  registration_fee=0, monthly_fee=0)
+        gym = Gym(name="Primary Gym", currency="GHS", registration_fee=0, monthly_fee=0)
         db.add(gym)
         db.commit()
         db.refresh(gym)

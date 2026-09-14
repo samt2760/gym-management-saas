@@ -8,7 +8,9 @@ from app.models.mixins import TimestampMixin
 class Gym(TimestampMixin, Base):
     __tablename__ = "gyms"
     __table_args__ = (
-        CheckConstraint("registration_fee >= 0", name="ck_gyms_registration_fee_nonnegative"),
+        CheckConstraint(
+            "registration_fee >= 0", name="ck_gyms_registration_fee_nonnegative"
+        ),
         CheckConstraint("monthly_fee >= 0", name="ck_gyms_monthly_fee_nonnegative"),
     )
 
