@@ -127,7 +127,7 @@ class MembershipService:
         effective_registration_date = (
             registration_date or member.registration_date or effective_date
         )
-        effective_payment_date = payment_date or effective_registration_date
+        effective_payment_date = payment_date or _utc_today()
         member.registration_date = effective_registration_date
         member.membership_type = "Monthly"
         member.payment_due_date = registration_due_date(effective_registration_date)

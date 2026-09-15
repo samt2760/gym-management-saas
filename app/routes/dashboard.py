@@ -1,11 +1,11 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.auth import require_permission
 from app.models import Gym, Member, Payment, User
-from app.services.membership_service import update_member_status
+from app.services.membership_service import _utc_today, update_member_status
 from app.services.reporting_service import payment_totals
 from app.web import get_db, templates
 
@@ -18,7 +18,7 @@ def dashboard(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("reports.view")),
 ):
-    today = datetime.now(UTC).date()
+    today = _utc_today()
 
     gym = db.query(Gym).filter(Gym.id == user.gym_id).first()
 

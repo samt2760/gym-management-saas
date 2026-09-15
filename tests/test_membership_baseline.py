@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from app.models import Gym, Member, Payment
 from app.services.membership_service import update_member_status
+from app.services.reporting_service import payment_totals
 
 REGISTRATION_FEE = 200
 MONTHLY_FEE = 120
@@ -99,9 +100,12 @@ def test_registration_creates_member_initial_membership_and_registration_payment
     assert payment.member_id == member.id
     assert payment.member_name == member.full_name
     assert payment.amount == REGISTRATION_FEE
-    assert payment.payment_date == registration_date
+    today = datetime.now(UTC).date()
+    assert payment.status == "Completed"
+    assert payment.payment_date == today
     assert payment.membership_type == "Monthly"
     assert payment.payment_type == "Registration"
+    assert payment_totals([payment], today)[1] == REGISTRATION_FEE
 
 
 def test_registration_charges_registration_fee(client, db):
@@ -337,6 +341,25 @@ def test_dashboard_calculates_membership_and_revenue_totals(client, db):
     # The three dashboard revenue cards should each render the same total for
     # this registration and multi-month renewal scenario.
     assert page.count("GHS 440.00") == 3
+
+
+def test_dashboard_todays_revenue_includes_registration_payment_dated_today(client, db):
+    configure_gym(client)
+    register_member(client)
+
+    payment = db.query(Payment).one()
+    assert payment.amount == REGISTRATION_FEE
+    assert payment.status == "Completed"
+    assert payment.payment_date == datetime.now(UTC).date()
+
+    response = client.get("/dashboard")
+    page = " ".join(response.text.split())
+
+    assert response.status_code == 200
+    assert (
+        "Today's Revenue </div> <div class=\"stat revenue-value\"> GHS 200.00"
+        in page
+    )
 
 
 def test_gym_settings_update_pricing_and_reject_invalid_monthly_fee(client, db):
