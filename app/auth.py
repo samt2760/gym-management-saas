@@ -230,19 +230,6 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
-def revoke_all_user_sessions(db: Session, user_id: int, *, commit: bool = True) -> None:
-    now = _now_utc()
-    sessions = (
-        db.query(UserSession)
-        .filter(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
-        .all()
-    )
-    for session in sessions:
-        session.revoked_at = now
-    if commit:
-        db.commit()
-
-
 def _prune_reset_attempts(attempts: deque[datetime], now: datetime) -> None:
     cutoff = now - timedelta(seconds=PASSWORD_RESET_RATE_LIMIT_SECONDS)
     while attempts and attempts[0] < cutoff:

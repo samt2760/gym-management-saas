@@ -15,6 +15,13 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./gym.db")
 
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1,
+    )
+
 DATABASE_CONNECT_TIMEOUT_SECONDS = int(
     os.getenv("DATABASE_CONNECT_TIMEOUT_SECONDS", "10")
 )

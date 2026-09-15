@@ -86,7 +86,9 @@ justification, migration plan, and automated regression coverage.
 ## Registration business rules
 
 - Registration is separate from renewal.
-- Registration consists of the registration fee plus the first month fee.
+- Registration records the configured registration fee only. The configured
+  monthly fee establishes the initial monthly entitlement and due date; later
+  monthly fees are recorded as separate renewal payments.
 - Successful registration must atomically create the member, the initial
   membership entitlement, and its payment/ledger record.
 - Validate required identity/contact fields and registration dates on the

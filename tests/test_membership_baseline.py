@@ -98,19 +98,19 @@ def test_registration_creates_member_initial_membership_and_registration_payment
     assert member.status == "Expired"
     assert payment.member_id == member.id
     assert payment.member_name == member.full_name
-    assert payment.amount == REGISTRATION_FEE + MONTHLY_FEE
+    assert payment.amount == REGISTRATION_FEE
     assert payment.payment_date == registration_date
     assert payment.membership_type == "Monthly"
     assert payment.payment_type == "Registration"
 
 
-def test_registration_charges_registration_fee_plus_first_month_fee(client, db):
+def test_registration_charges_registration_fee(client, db):
     configure_gym(client)
 
     register_member(client)
 
     payment = db.query(Payment).one()
-    assert payment.amount == REGISTRATION_FEE + MONTHLY_FEE
+    assert payment.amount == REGISTRATION_FEE
 
 
 def test_registration_requires_configured_positive_monthly_fee(client, db):
@@ -283,7 +283,7 @@ def test_member_detail_shows_payment_history(client, db):
     assert "Payment History" in page
     assert "Registration" in page
     assert "Renewal" in page
-    assert "GHS 320.00" in page
+    assert "GHS 200.00" in page
     assert "GHS 120.00" in page
 
 
@@ -335,8 +335,8 @@ def test_dashboard_calculates_membership_and_revenue_totals(client, db):
     assert "Active Members" in page
 
     # The three dashboard revenue cards should each render the same total for
-    # this registration-plus-first-month and multi-month renewal scenario.
-    assert page.count("GHS 560.00") == 3
+    # this registration and multi-month renewal scenario.
+    assert page.count("GHS 440.00") == 3
 
 
 def test_gym_settings_update_pricing_and_reject_invalid_monthly_fee(client, db):

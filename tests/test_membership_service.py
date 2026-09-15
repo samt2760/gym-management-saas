@@ -30,7 +30,7 @@ def _make_member() -> Member:
     )
 
 
-def test_register_membership_includes_registration_and_first_month_fee():
+def test_register_membership_records_registration_fee():
     gym = _make_gym()
     member = _make_member()
 
@@ -41,7 +41,7 @@ def test_register_membership_includes_registration_and_first_month_fee():
     )
 
     assert created_member.status == "Active"
-    assert payment.amount == gym.registration_fee + gym.monthly_fee
+    assert payment.amount == gym.registration_fee
     assert payment.payment_type == "Registration"
     assert created_member.payment_due_date == date(2026, 2, 28)
 

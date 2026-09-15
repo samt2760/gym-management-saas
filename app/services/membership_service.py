@@ -134,7 +134,7 @@ class MembershipService:
         member.status = (
             "Active" if member.payment_due_date >= effective_date else "Expired"
         )
-        payment_amount = gym.registration_fee + gym.monthly_fee
+        payment_amount = gym.registration_fee
         payment = Payment(
             gym_id=gym.id,
             member_id=member.id,

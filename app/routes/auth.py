@@ -18,7 +18,6 @@ from app.auth import (
     login_throttle_key,
     require_auth,
     resolve_reset_token,
-    revoke_all_user_sessions,
     set_session_cookie,
 )
 from app.core.config import SESSION_COOKIE_NAME
@@ -39,6 +38,7 @@ from app.services.password_reset_delivery import (
     PasswordResetMessage,
     get_password_reset_delivery,
 )
+from app.services.session_service import revoke_all_user_sessions
 from app.web import get_db, templates
 
 router = APIRouter()
